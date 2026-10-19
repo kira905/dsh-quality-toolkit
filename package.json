@@ -1,0 +1,66 @@
+{
+  "name": "@kira905/dsh-quality-toolkit",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness (DSH) quality & rules toolkit: engineering-rule checker (DoD/DoR/defect/postmortem/practice), documentation-discipline judges, docs index generator, vocabulary guard, decoupling checker, and the L3 realtime pitfall-reminder plugin. Zero third-party runtime dependencies.",
+  "license": "AGPL-3.0-only",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "rulecheck": "rulecheck.mjs",
+    "dsh-check-decoupling": "check-decoupling.mjs",
+    "dsh-docs-consistency-scan": "docs-consistency-scan.mjs",
+    "dsh-docs-index-gen": "docs-index-gen.mjs",
+    "dsh-sync-host-adapter": "sync-host-adapter.mjs",
+    "dsh-vocab-guard": "dsh-vocab-guard.mjs",
+    "l3-reminder": "dsh-l3-pitfall-reminder/bin/l3-reminder.mjs",
+    "docs-archive-rounds": "docs-discipline/archive-rounds.mjs",
+    "docs-check-caliber": "docs-discipline/check-caliber.mjs",
+    "docs-check-cites": "docs-discipline/check-cites.mjs",
+    "docs-check-cites-exist": "docs-discipline/check-cites-exist.mjs",
+    "docs-check-promises": "docs-discipline/check-promises.mjs",
+    "docs-check-residue": "docs-discipline/check-residue.mjs",
+    "docs-check-rootcause": "docs-discipline/check-rootcause.mjs",
+    "docs-check-rounds": "docs-discipline/check-rounds.mjs",
+    "docs-check-selfclaim": "docs-discipline/check-selfclaim.mjs",
+    "docs-check-volume": "docs-discipline/check-volume.mjs",
+    "docs-gen-doc-audit": "docs-discipline/gen-doc-audit.mjs",
+    "docs-scan-four": "docs-discipline/scan-four.mjs",
+    "docs-selfcheck-rerun": "docs-discipline/selfcheck-rerun.mjs"
+  },
+  "files": [
+    "*.mjs",
+    "lib/",
+    "docs-discipline/",
+    "dsh-l3-pitfall-reminder/",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "quality",
+    "rules",
+    "lint",
+    "documentation",
+    "doc-discipline",
+    "pitfall",
+    "lint-toolkit",
+    "verification"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kira905/dsh-quality-toolkit.git"
+  },
+  "homepage": "https://github.com/kira905/dsh-quality-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/kira905/dsh-quality-toolkit/issues"
+  }
+}

@@ -1,0 +1,19 @@
+node_modules/
+*.log
+*.tmp
+*.bak
+*.bak-*
+.DS_Store
+Thumbs.db
+_tmp/
+_archive/
+snapshots/
+backups/
+generated/
+logs/
+coverage/
+*.tgz
+# 运行期数据（本工具不写，但防止误带）
+*.db
+butler-l3-reminder.json
+butler-l3-reminder.log

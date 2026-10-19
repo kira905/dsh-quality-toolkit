@@ -1,0 +1,20 @@
+{
+  "name": "dsh-l3-pitfall-reminder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "P4 L3 realtime pitfall reminder: when a tool call fails and its normalized error signature hits the butler pitfall store, inject one advisory context message into the current session. Default OFF.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "profile": {
+      "bundles": []
+    }
+  }
+}
