@@ -1,6 +1,6 @@
 # dsh-quality-toolkit · DSH 质检与规则工具包
 
-> 本仓**主包**是命令行工具（**23 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 profile 的 `cordis.patch.yml` 里手工 `insert` 一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
+> 本仓**主包**是命令行工具（**24 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 profile 的 `cordis.patch.yml` 里手工 `insert` 一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
 
 ## 装完自检（三条只读验法）
 
@@ -36,10 +36,23 @@ Test-Path "$env:APPDATA\npm\rulecheck.CMD"                           # npm i -g 
 
 ---
 
+## 设计依据
+
+本仓的判据不是凭空定的：每组判据对应一篇方法稿，脚本只负责把它变成可复跑的命令，不另立一套口径。
+
+| 能力 | 设计依据 |
+|---|---|
+| 方案过审闸（见 5.6） | 《设计稿审核规程》（文档集第 04 篇）：审核轮次、过审凭据、回修闭环怎么组织 |
+| 交付闸三件（见 5.5） | 《文档体系口径一致性审核》（文档集第 08 篇）：引用面与一致性审核的判据面 |
+
+> 设计稿来自同一套长期运行的工程流程；随本仓开源时只保留方法，不含任何环境细节。
+
+---
+
 ## ⚠️ 先读这段（比任何用法都重要）
 
-1. **帮助命令只覆盖一部分脚本。** 2026-10-30 起 `dsh-docs-consistency-scan`、`docs-gen-doc-audit`、以及**交付闸三件**
-   （`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
+1. **帮助命令只覆盖一部分脚本。** 2026-10-30 起 `dsh-docs-consistency-scan`、`docs-gen-doc-audit`、**交付闸三件**
+   （`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）以及**方案过审闸** `dsh-plan-gate` 支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
    `rulecheck` / `check-decoupling` 本来就有帮助输出。其余历史脚本仍可能**静默忽略**未知参数、
    然后**直接执行真动作**。
    ⇒ **不确定就先读该脚本头部的注释块**（本仓每个脚本头 10~40 行都写了用法、口径与退出码），
@@ -96,9 +109,11 @@ dsh-quality-toolkit/
 ├── dsh-ref-scan.mjs                  # 引用面扫描：关键词 ⇒ 四类载体 ⇒ 四类处置表（A/B/C/D 留空给人填）
 ├── dsh-sim-scan.mjs                  # 同源度扫描：同名件 / 逐字节同 / ≥90% / 50–90% / <50% / ≥50% 行同占比
 ├── dsh-self-audit.mjs                # 交付前自批：六条机械判据（DoD / 命令原文 / 待拍板 / 内部标识 / 路径）
-├── config/                           # 三件器具的口径与词表（随仓发布；改口径 = 改这里）
+├── dsh-plan-gate.mjs                 # 方案过审闸：正文字节 sha ⇒ 四态（pass/stale/missing/fail）+ 幂等锚点
+├── config/                           # 四件器具的口径与词表（随仓发布；改口径 = 改这里）
 │   ├── sim-scan.json                 # 同源度口径：6 类扩展名 + 8 个 skip 目录 + 生产面 + 分档阈值
 │   ├── ref-scan.json                 # 引用面载体：文档 / 技能 / 人设 / 工具 + 各自排除目录
+│   ├── plan-gate.json                # 过审闸口径：锚点落位 / ## 约定 / 谁能签 / 缺省是否要求独立
 │   ├── deny-words.txt                # 脱敏第三层：必删字面量（7 类，每类至少 1 条）
 │   ├── deny-patterns.txt             # 脱敏第三层：必删模式（正则；7 类合并计）
 │   ├── deny-allow.txt                # 允许规则：只放行结构性误报（夹具里的合成盘符等），逐行写理由
@@ -112,11 +127,13 @@ dsh-quality-toolkit/
 │   ├── negctl.mjs                    # 阴性对照四步时序（注入 → 复制 → 扫+断言 → 清理）
 │   ├── ref-scan-core.mjs             # 引用面扫描内核（扫描面证据 / 四类处置表）
 │   ├── sim-scan-core.mjs             # 同源度内核（多重集扣减 / 分桶 / 基线差异归因）
-│   └── self-audit-core.mjs           # 六条判据实现（含内部标识三层）
-├── _test/                            # 三件器具的单测（118 条断言，纯夹具、零生产写入）
+│   ├── self-audit-core.mjs           # 六条判据实现（含内部标识三层）
+│   └── plan-gate-core.mjs            # 过审闸内核（正文归一 / 四态 / 锚点读写 / 幂等 / 并发三态）
+├── _test/                            # 四件器具的单测（227 条断言，纯夹具、零生产写入）
 │   ├── test-ref-scan.mjs
 │   ├── test-sim-scan.mjs
 │   ├── test-self-audit.mjs
+│   ├── test-plan-gate.mjs            # 含三条变异测试（关独立校验 / 幂等改追加 / 关写后回读）
 │   ├── test-deny-literal.mjs
 │   └── test-negctl.mjs
 ├── docs-discipline/                  # 文档纪律判据集（13 个检查器 + 2 个共享件 + 2 个单测）
@@ -157,7 +174,7 @@ dsh-quality-toolkit/
 
 ---
 
-## 3. 逐件表 · 根目录（9 个）
+## 3. 逐件表 · 根目录（10 个）
 
 | 文件 | 一句话用途 | 真实参数 |
 |---|---|---|
@@ -170,12 +187,13 @@ dsh-quality-toolkit/
 | [`dsh-ref-scan.mjs`](dsh-ref-scan.mjs) | 引用面扫描：给关键词 ⇒ 扫四类载体 ⇒ 四类处置表（A 就地订正 / B 加头指针 / C 判定不改+理由 / D 待主人）。**判定列留空给人填** | `node dsh-ref-scan.mjs <关键词...> [--root <dir>] [--config <file>] [--out <file>] [--json] [--case-sensitive] [--snippet <N>]`；`0 命中 ⇒ 判黄（rc=3）` |
 | [`dsh-sim-scan.mjs`](dsh-sim-scan.mjs) | 同源度扫描：一个仓或一整个仓根，对同名可比件算「同名件 / 逐字节同 / ≥90% / 50–90% / <50% / **≥50% 行同占比**」 | `node dsh-sim-scan.mjs (--repo <dir> \| --all <dir>) [--prod-root <dir>] [--config <file>] [--baseline <file\|none>] [--detail <repo>] [--out <file>] [--json]` |
 | [`dsh-self-audit.mjs`](dsh-self-audit.mjs) | 交付前自批：六条机械判据（DoD 块 / 当次命令原文 / 待拍板段 / 内部标识三层 / 报告存在 / 引用文件存在） | `node dsh-self-audit.mjs <report.md> [--root <dir>] [--machine-report <file>] [--negctl --dir <dir>] [--out <file>] [--json]`；`0 绿 / 3 黄 / 4 红` |
+| [`dsh-plan-gate.mjs`](dsh-plan-gate.mjs) | 方案过审闸：给方案档算正文字节 sha，判四态（pass / stale / missing / fail），可写一条幂等锚点（`actor` / `independent` 两个字段支撑"职责分离"） | `node dsh-plan-gate.mjs (--check \| --pass \| --fail) --file <方案档> [--require-independent] [--round N] [--actor <who>] [--independent yes\|no] [--apply] [--expect-sha <hex>] [--config <file>] [--json]`；`check：0/1/3/4`、`写：0/1/3/4`、用法错一律 2 |
 
 > `sync-host-adapter.mjs` 是 `check-decoupling.mjs` 的**依赖件**（`verifySummary()` + `SOURCE_LABEL`）。
 > 它只做**结构判定**（sha/头部比对），不读凭据、不碰密钥；默认目标表指向相对路径，
 > 在缺少该生态的机器上跑只会报 `source-missing`，不会写任何文件。
 
-## 4. 共享依赖件 · `lib/`（9 个）
+## 4. 共享依赖件 · `lib/`（10 个）
 
 | 文件 | 一句话用途 |
 |---|---|
@@ -188,6 +206,7 @@ dsh-quality-toolkit/
 | `lib/ref-scan-core.mjs` | 引用面扫描内核：扫描面证据行、四类处置表渲染、被排除目录命中单独计数 |
 | `lib/sim-scan-core.mjs` | 同源度内核：多重集扣减、三档分桶、主结论列、与基线的逐行差异归因 |
 | `lib/self-audit-core.mjs` | 六条判据实现（含「内部标识」三层：机器层 + 证伪层 + 字面量层） |
+| `lib/plan-gate-core.mjs` | 过审闸内核：正文归一（去锚点 / 去 BOM / CRLF→LF）、四态判定、锚点读写、幂等、并发三态（CAS + 写后回读） |
 
 ## 5. `docs-discipline/` · 13 个文档纪律判据
 
@@ -299,6 +318,82 @@ dsh-quality-toolkit/
 
 ---
 
+## 5.6 方案过审闸（`dsh-plan-gate`）
+
+治的病：**「方案没过审就建卡」只能靠人自觉**。本命令把「这份方案审过了、而且审完之后正文没被改过」变成一次
+可复跑的读数，而不是一句承诺。
+
+### 四态
+
+| 状态 | 什么情况 | `--check` 退出码 |
+|---|---|---|
+| `pass` | 有 `pass` 锚点，且锚点里的正文 sha 与当前正文一致 | 0 |
+| `stale` | 有 `pass` 锚点，但正文变了（锚点里没 sha 也算） | 1 |
+| `missing` | 档读不到 / 没有锚点 /（要求独立签署时）签署方不独立 | 3 |
+| `fail` | 有 `fail` 锚点（审核没过 ⇒ 同样不能建卡） | 4 |
+
+判定优先级写死：**正文变了永远先报 `stale`** —— 「锚点还在、内容已经换了」是最容易被人当成"过了审"的那种假绿。
+
+### 锚点是什么
+
+一行 HTML 注释，落在档头（首个 `##` 之前）：
+
+```text
+<!-- PLAN-REVIEW:pass round=2 actor=reviewer-a independent=yes sha=1af1bde732c1 at=2026-10-30T08:51:10Z runId=… -->
+```
+
+- `sha` = **正文** sha256 的前 12 位。正文 = 去掉所有锚点行 → 去 BOM → CRLF 归一成 LF，其余逐字节参与哈希。
+  ⇒ 改行尾、加 BOM **不算**改正文；改一个字立刻 `stale`；重写锚点不会把自己判过期。
+- `actor` = 谁签的（人名或角色名）；`independent` = 签署方是否独立于作者（值域写死 `yes` / `no`）。
+- 锚点**永远只有一行**：写入时先摘旧锚点再插新行；`kind` / `round` / `actor` / `independent` / 正文 sha 全一致时
+  **连写都不写**（文件字节前后一致）。
+
+### 职责分离：`--require-independent`
+
+```bash
+dsh-plan-gate --check --file plan.md --require-independent
+```
+
+要求「签署方独立于作者」：有 pass 锚点但 `independent` 不是 `yes` ⇒ 判 **`missing`（rc 3）**，不是 `pass`。
+
+> ⚠️ **缺省不校验立场。** 不带 `--require-independent` 时，作者自己签的锚点照样判 `pass` —— 那时 `pass` 只说明
+> **「有人签过」**，不说明「签署方独立于作者」。真把过审当回事的流水线必须显式带上这个标志；不写清这一点，
+> 用的人会以为 `pass` = 过了审。
+
+### 并发与权限
+
+写锚点要过三道门：外部快照 CAS（`--expect-sha`）→ 写前重读比对 → 写后回读比对（锚点行 + 正文 sha）。
+写失败、文件只读、两个会话同时写 ⇒ 一律判 `stale`（rc 1）**且不覆盖**，把 errno / 原因码原样打出来。
+写完还会自检一次：`--pass` 之后 `--check` 必须判 pass（「写完自己判 stale」= 锚点旁边多加了空行）。
+
+### 5.6.1 可选消费点（**本文只给接口，不接线**）
+
+本仓不替你的流水线做决定，只把凭证做成可读的；下面两处是它最自然的两个消费点，接不接由你用不用：
+
+| 消费点 | 怎么用 | 不接的后果 |
+|---|---|---|
+| **建卡器必填** | 建卡前跑 `--check`，非 `pass` 就拒绝建卡（要求独立签署就再加 `--require-independent`） | 卡和方案之间没有任何机器可查的关系 |
+| **复核器 R4** | 复核时把 `--check` 的四态当一条判据写进复核表；`stale` **单独一档**（不是"缺证据"，是"证据过期"） | 复核表里"方案已过审"仍然只是一句自述 |
+
+⭐ 把 `stale` 和 `missing` 分成两档是有意的：前者「证据过期、必须重新过审」，后者「从来没留下证据」。
+
+### 5.6.2 「机器锁二」：改生产可免审，但必须补默认等价判据
+
+**机器锁一** = 本文的过审闸：动方案要走审。
+**机器锁二** = 例外通道：允许「改生产」跳过审（热修、回滚、只改一行），但**必须同时留下一条可复跑的等价判据**，
+否则免审就变成了「没人知道这处改动凭什么安全」。
+
+| | 锁一 | 锁二 |
+|---|---|---|
+| 管什么 | 方案变更 | 生产变更（代码 / 配置 / 脚本） |
+| 凭据 | 锚点（正文 sha + actor + independent） | 一条**当场能跑**的判据：改前改后各跑一次的那个命令 + 两次读数 |
+| 谁签 | 独立于作者的人 | 同样得独立于作者（**免审 ≠ 免签**） |
+| 过期判据 | 正文 sha 变了 ⇒ `stale` | 判据的输入变了（文件 sha / 版本号 / 配置值）⇒ 同样算过期 |
+
+两条锁治的是同一件事：**「我说它没问题」不算凭证，「换个人现在能跑一遍」才算**。
+
+---
+
 ## 6. `dsh-l3-pitfall-reminder/` · L3 实时坑库提醒插件
 
 干活过程中工具调用失败、且错误签名命中已归档坑库时，向**当前会话**注入一条提醒（默认**关**）。
@@ -323,7 +418,7 @@ dsh-quality-toolkit/
 ## 7. 与 DSH 的关系
 
 - **纯 CLI（可脱离 DSH 单跑）**：`rulecheck`、`docs-consistency-scan`、`docs-index-gen`、`dsh-vocab-guard`、
-  `docs-discipline/*`、`sync-host-adapter`。
+  `dsh-plan-gate`、`docs-discipline/*`、`sync-host-adapter`。
 - **依赖 DSH 生态约定**（读 `docs\` / `profiles\web\`）：`check-decoupling`（扫插件源码树）、`sync-host-adapter`（同步 profile 副本）。
 - **是 DSH 插件**：只有 `dsh-l3-pitfall-reminder`（装在 `profiles\web\node_modules\` 下，随 dsh 启动加载）。
 
@@ -333,6 +428,9 @@ dsh-quality-toolkit/
 - `docs-discipline/_test/*` 与 `dsh-l3-pitfall-reminder/_test/test-core.mjs` 的部分用例会**读生产文档 / 生产坑库做对照**
   （只读）。在干净机器上这些用例会走 `skip` 分支或按数据漂移 FAIL —— 属预期。
 - `rulecheck` 的规则文本（`lib/rulecheck-rules.mjs`）来自某个具体工程流程，字段名与判据族是**约定俗成**的，换团队要改规则表。
+- `dsh-plan-gate` **不判断"谁有资格签"**：它只记 `actor` 与 `independent` 两个字段，是否真独立由流程与人负责。
+  默认配置 `signer.mode=any`（谁都签得了）；要白名单就在 `config/plan-gate.json` 里改成 `list`。
+  另外它的只读档判据依赖文件系统只读位（Windows 上 `chmod 0444` 会置只读属性），在容器里以 root 跑可能测不到这条。
 
 ## 9. 许可
 

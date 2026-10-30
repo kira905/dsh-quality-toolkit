@@ -10,14 +10,28 @@
 
 ---
 
+## Design basis
+
+Nothing here is invented on the spot: each judge set corresponds to a written method note, and the scripts only turn
+that method into a re-runnable command — they never carry a second calibre.
+
+| Capability | Design basis |
+|---|---|
+| Plan-review gate (see 5.6) | “Design-review procedure” (method note 04): review rounds, approval evidence, rework loop |
+| Delivery gate, three tools (see 5.5) | “Documentation-system calibre consistency review” (method note 08): the reference-surface and consistency judge plane |
+
+> The notes come from one long-running engineering process; only the method is published here, no environment details.
+
+---
+
 ## ⚠️ Read this first
 
 1. **There is no single “help command” you can use to explore this repo.** Some scripts do implement a help
    output; **others silently ignore unknown flags and then execute their real action**. We have hit exactly
    that: running a snapshot export script with an unknown flag exported a full snapshot instead of printing help.
-   The three delivery-gate tools (`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`), plus
-   `dsh-docs-consistency-scan` and `docs-gen-doc-audit`, implement `--help` (rc=0, nothing executed) and
-   **reject unknown flags** (rc=2, nothing executed).
+   The three delivery-gate tools (`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`), the plan-review gate
+   (`dsh-plan-gate`), plus `dsh-docs-consistency-scan` and `docs-gen-doc-audit`, implement `--help` (rc=0, nothing
+   executed) and **reject unknown flags** (rc=2, nothing executed).
    ⇒ **Read the header comment block of the script you are about to run** (every script documents usage,
    semantics and exit codes in its first 10–40 lines), or use the per-file table below.
 2. **Every write action is dry-run by default.** `docs-index-gen`, `archive-rounds` and `install.mjs` only print a
@@ -74,9 +88,11 @@ dsh-quality-toolkit/
 ├── dsh-ref-scan.mjs                  # reference-surface scan: keywords ⇒ 4 carriers ⇒ 4-way disposition table
 ├── dsh-sim-scan.mjs                  # similarity scan: same-name / byte-identical / ≥90% / 50-90% / <50% / ≥50% share
 ├── dsh-self-audit.mjs                # pre-delivery self-audit: six mechanical checks
+├── dsh-plan-gate.mjs                 # plan-review gate: body sha ⇒ four states + one idempotent anchor line
 ├── config/                           # calibre + word tables (shipped; changing the calibre = changing these)
 │   ├── sim-scan.json                 # similarity calibre: 6 extensions + 8 skip dirs + production side + buckets
 │   ├── ref-scan.json                 # reference-scan carriers: docs / skills / persona / tools
+│   ├── plan-gate.json                # gate calibre: anchor placement / `##` convention / who may sign / default stance
 │   ├── deny-words.txt                # literal layer: must-remove literals (7 categories, ≥1 each)
 │   ├── deny-patterns.txt             # literal layer: must-remove regexes (7 categories, counted together)
 │   ├── deny-allow.txt                # allow rules: structural false positives only, one reason per line
@@ -90,11 +106,13 @@ dsh-quality-toolkit/
 │   ├── negctl.mjs                    # negative control, four ordered steps
 │   ├── ref-scan-core.mjs             # reference scan core (scan-surface evidence / disposition table)
 │   ├── sim-scan-core.mjs             # similarity core (multiset subtraction / buckets / baseline attribution)
-│   └── self-audit-core.mjs           # the six checks (incl. the three-layer internal-identifier check)
-├── _test/                            # 118 assertions, pure fixtures, zero production writes
+│   ├── self-audit-core.mjs           # the six checks (incl. the three-layer internal-identifier check)
+│   └── plan-gate-core.mjs            # gate core (body normalization / four states / anchor I/O / idempotence / race)
+├── _test/                            # 227 assertions, pure fixtures, zero production writes
 │   ├── test-ref-scan.mjs
 │   ├── test-sim-scan.mjs
 │   ├── test-self-audit.mjs
+│   ├── test-plan-gate.mjs            # includes three mutation tests
 │   ├── test-deny-literal.mjs
 │   └── test-negctl.mjs
 ├── docs-discipline/                  # 13 document-discipline checkers + 2 shared libs + 2 unit tests
@@ -135,7 +153,7 @@ dsh-quality-toolkit/
 
 ---
 
-## 3. Root tools (9)
+## 3. Root tools (10)
 
 | File | What it does | Real arguments |
 |---|---|---|
@@ -148,13 +166,14 @@ dsh-quality-toolkit/
 | [`dsh-ref-scan.mjs`](dsh-ref-scan.mjs) | Reference-surface scan: keywords ⇒ four carriers ⇒ four-way disposition table (A fix in place / B add a header pointer / C keep + reason / D needs owner). **The disposition column is left blank for a human** | `node dsh-ref-scan.mjs <keyword...> [--root <dir>] [--config <file>] [--out <file>] [--json] [--case-sensitive] [--snippet <N>]`; `0 hits ⇒ yellow (rc=3)` |
 | [`dsh-sim-scan.mjs`](dsh-sim-scan.mjs) | Similarity scan for one repo or a whole repo root: same-name files / byte-identical / ≥90% / 50–90% / <50% / **≥50% line-share** | `node dsh-sim-scan.mjs (--repo <dir> \| --all <dir>) [--prod-root <dir>] [--config <file>] [--baseline <file\|none>] [--detail <repo>] [--out <file>] [--json]` |
 | [`dsh-self-audit.mjs`](dsh-self-audit.mjs) | Pre-delivery self-audit: six mechanical checks (DoD block / verbatim command / pending-decision section / internal identifiers in three layers / report exists / cited files exist) | `node dsh-self-audit.mjs <report.md> [--root <dir>] [--machine-report <file>] [--negctl --dir <dir>] [--out <file>] [--json]`; `0 green / 3 yellow / 4 red` |
+| [`dsh-plan-gate.mjs`](dsh-plan-gate.mjs) | Plan-review gate: computes the body sha256 of a plan document, judges four states (pass / stale / missing / fail), and can write one idempotent anchor line (`actor` + `independent` carry the separation-of-duties part) | `node dsh-plan-gate.mjs (--check \| --pass \| --fail) --file <plan.md> [--require-independent] [--round N] [--actor <who>] [--independent yes\|no] [--apply] [--expect-sha <hex>] [--config <file>] [--json]`; `check: 0/1/3/4`, `write: 0/1/3/4`, usage errors always 2 |
 
 > `sync-host-adapter.mjs` is a **dependency** of `check-decoupling.mjs` (`verifySummary()` + `SOURCE_LABEL`).
 > It performs **structural checks only** (sha/header comparison), never touches credentials or keys. Its default
 > target table points at relative paths, so on a machine without that ecosystem it reports `source-missing`
 > and writes nothing.
 
-## 4. Shared dependencies · `lib/` (9)
+## 4. Shared dependencies · `lib/` (10)
 
 | File | What it does |
 |---|---|
@@ -167,6 +186,7 @@ dsh-quality-toolkit/
 | `lib/ref-scan-core.mjs` | Reference-scan core: scan-surface evidence line, disposition table rendering, excluded-dir hit accounting |
 | `lib/sim-scan-core.mjs` | Similarity core: multiset subtraction, three buckets, headline column, baseline diff attribution |
 | `lib/self-audit-core.mjs` | The six checks, including the three-layer internal-identifier check |
+| `lib/plan-gate-core.mjs` | Gate core: body normalization (drop anchors / strip BOM / CRLF→LF), four-state judgement, anchor I/O, idempotent writes, race handling (CAS + read-back) |
 
 ## 5. `docs-discipline/` · 13 document-discipline judges
 
@@ -277,6 +297,93 @@ identifiers. Put your own private words in `config/deny-words.local.txt` (gitign
 
 ---
 
+## 5.6 Plan-review gate (`dsh-plan-gate`)
+
+The disease it treats: **“a card got created without the plan ever being reviewed” can only be prevented by
+self-discipline**. This command turns “this plan was reviewed, and its body has not changed since” into a
+re-runnable reading instead of a promise.
+
+### Four states
+
+| State | When | `--check` exit code |
+|---|---|---|
+| `pass` | a `pass` anchor exists and its body sha matches the current body | 0 |
+| `stale` | a `pass` anchor exists but the body changed (a `pass` anchor without `sha` also counts) | 1 |
+| `missing` | file unreadable / no anchor / (when independence is required) the signer is not independent | 3 |
+| `fail` | a `fail` anchor exists (review failed ⇒ equally cannot build a card) | 4 |
+
+The precedence is pinned: **a changed body always reports `stale` first** — “the anchor is still there, the content
+already changed” is exactly the false green people mistake for “reviewed”.
+
+### What the anchor is
+
+One HTML comment line, placed in the document header (before the first `##`):
+
+```text
+<!-- PLAN-REVIEW:pass round=2 actor=reviewer-a independent=yes sha=1af1bde732c1 at=2026-10-30T08:51:10Z runId=… -->
+```
+
+- `sha` = first 12 hex chars of the **body** sha256. Body = all anchor lines removed → BOM stripped → CRLF normalized
+  to LF; every other byte participates in the hash. ⇒ changing line endings or adding a BOM **is not** a body change;
+  changing one character makes it `stale` immediately; rewriting the anchor never makes the file stale against itself.
+- `actor` = who signed (a person or a role); `independent` = whether the signer is independent of the author
+  (value domain pinned to `yes` / `no`).
+- There is **ever only one anchor line**: a write strips old anchors first and inserts a new one; when
+  `kind` / `round` / `actor` / `independent` / body sha all match, it **does not even write** (byte-identical file).
+
+### Separation of duties: `--require-independent`
+
+```bash
+dsh-plan-gate --check --file plan.md --require-independent
+```
+
+Requires “the signer is independent of the author”: a `pass` anchor whose `independent` is not `yes` is judged
+**`missing` (rc 3)**, not `pass`.
+
+> ⚠️ **The default does not check the stance.** Without `--require-independent`, an anchor the author signed
+> themselves is still `pass` — in that case `pass` only means **“somebody signed”**, not “the signer is independent of
+> the author”. A pipeline that takes review seriously must pass this flag explicitly; leaving it unsaid lets people
+> read `pass` as “reviewed”.
+
+### Concurrency and permissions
+
+Writing an anchor passes three doors: external-snapshot CAS (`--expect-sha`) → re-read right before the write →
+read back right after it (anchor line + body sha). A failed write, a read-only file, or two sessions writing at once
+all yield `stale` (rc 1) **without overwriting**, and the errno / reason code is printed as is.
+The write also self-checks once: after `--pass`, `--check` must be `pass` (“stale right after writing” = an extra
+blank line next to the anchor).
+
+### 5.6.1 Optional consumption points (interfaces only, **not wired**)
+
+This repo does not make decisions for your pipeline; it only makes the evidence readable. These two are its most
+natural consumers — whether you wire them is your call:
+
+| Consumer | How | If you skip it |
+|---|---|---|
+| **Card creator, required field** | run `--check` before creating a card and refuse unless it is `pass` (add `--require-independent` when independence matters) | no machine-checkable relation between the card and the plan |
+| **Reviewer R4** | record the four states as one row of the review table; keep `stale` as its **own** row (not “missing evidence”, but “evidence expired”) | “the plan was reviewed” stays a self-report |
+
+⭐ Splitting `stale` from `missing` is deliberate: the former means “evidence expired, re-review”, the latter means
+“no evidence was ever left”.
+
+### 5.6.2 “Machine lock two”: production edits may skip review, but must carry an equivalent check
+
+**Machine lock one** = the gate above: changing a plan goes through review.
+**Machine lock two** = the exception path: a production edit (hotfix, rollback, one-line change) may **skip** review,
+but it **must leave a re-runnable equivalent check** — otherwise the exemption becomes “nobody knows why this change
+is safe”.
+
+| | Lock one | Lock two |
+|---|---|---|
+| Covers | plan changes | production changes (code / config / scripts) |
+| Evidence | anchor (body sha + actor + independent) | one command **runnable on the spot**: run before and after, plus both readings |
+| Who signs | someone independent of the author | likewise independent of the author (**exempt from review ≠ exempt from signing**) |
+| Expiry | body sha changed ⇒ `stale` | the check's input changed (file sha / version / config value) ⇒ equally expired |
+
+Both locks treat the same thing: **“I say it is fine” is not evidence; “someone else can run it now” is.**
+
+---
+
 ## 6. `dsh-l3-pitfall-reminder/` · L3 realtime pitfall-reminder plugin
 
 When a tool call fails and its normalized error signature matches an archived pitfall, the plugin injects one
@@ -302,7 +409,7 @@ advisory context message into the **current session** (off by default).
 ## 7. Relationship to DSH
 
 - **Plain CLI (run without DSH)**: `rulecheck`, `docs-consistency-scan`, `docs-index-gen`, `dsh-vocab-guard`,
-  `docs-discipline/*`, `sync-host-adapter`.
+  `dsh-plan-gate`, `docs-discipline/*`, `sync-host-adapter`.
 - **Rely on DSH conventions** (read `docs\` / `profiles\web\`): `check-decoupling`, `sync-host-adapter`.
 - **A DSH plugin**: only `dsh-l3-pitfall-reminder`.
 
@@ -312,6 +419,10 @@ advisory context message into the **current session** (off by default).
 - Some `_test` cases read production docs / the production pitfall store (read-only) for comparison; on a clean
   machine they take the `skip` branch or fail on data drift — expected.
 - `rulecheck`'s rule texts (`lib/rulecheck-rules.mjs`) encode one team's workflow; swap the rule table for yours.
+- `dsh-plan-gate` **does not decide who is qualified to sign**: it records `actor` and `independent` and leaves the
+  actual independence to the process and the people. The default `signer.mode=any` lets anyone sign; switch to `list`
+  in `config/plan-gate.json` for an allow-list. Its read-only check also relies on the filesystem read-only bit
+  (`chmod 0444` sets the attribute on Windows), so running as root in a container may not exercise that case.
 
 ## 9. License
 

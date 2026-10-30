@@ -1,0 +1,37 @@
+{
+  "note": [
+    "方案过审闸的口径表：改口径 = 改这里，脚本不再另立一套默认值。",
+    "anchor.marker     锚点标记名（<!-- <marker>:pass … -->）。换名字等于换协议，老锚点会全部失效。",
+    "anchor.placement  before-first-h2 = 写在首个二级标题之前（档头区）；top = 直接写在档首。",
+    "anchor.h2Pattern  什么算「二级标题」。`## ` 后面必须跟空白：`### 三级` 与 `## 无空格` 都不算。",
+    "anchor.shaPrefixLength 锚点里存多少位正文 sha（6~64）。位越短越容易被撞，12 位 = 48 bit。",
+    "independent.values 值域写死两值；default 是 CLI 不给 --independent 时写的值。",
+    "independent.requireByDefault 缺省是否要求「签署方独立于作者」。出厂 false —— 意思是",
+    "                  **缺省不校验立场**：作者自己签的也判 pass。要真把「过审」当回事，用",
+    "                  `--check --require-independent`（那时不独立就判 missing，不是 pass）。",
+    "signer.mode       any = 谁都能签；list = 只有 signer.allowed 里的人或角色能签（大小写不敏感）。",
+    "signer.allowed    人名或角色名（如 reviewer / owner / audit-bot）。本工具不区分人与角色，只做字符串比对。",
+    "signer.denyEmpty  true = 签署方留空直接拒绝写入（空名字的凭证等于没有凭证）。",
+    "cli.defaultActor / cli.defaultRound  CLI 缺省值；defaultActor 会被写进锚点，以便事后追责。"
+  ],
+  "anchor": {
+    "marker": "PLAN-REVIEW",
+    "placement": "before-first-h2",
+    "h2Pattern": "^##[ \\t]",
+    "shaPrefixLength": 12
+  },
+  "independent": {
+    "values": ["yes", "no"],
+    "default": "no",
+    "requireByDefault": false
+  },
+  "signer": {
+    "mode": "any",
+    "allowed": [],
+    "denyEmpty": true,
+    "defaultActor": "unspecified"
+  },
+  "cli": {
+    "defaultRound": 1
+  }
+}

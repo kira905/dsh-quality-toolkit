@@ -1,6 +1,6 @@
 {
   "name": "@kira905/dsh-quality-toolkit",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "DeepSeek Harness (DSH) quality & rules toolkit: engineering-rule checker (DoD/DoR/defect/postmortem/practice), documentation-discipline judges, docs index generator, vocabulary guard, decoupling checker, and the L3 realtime pitfall-reminder plugin. Zero third-party runtime dependencies.",
   "license": "AGPL-3.0-only",
   "private": false,
@@ -21,6 +21,7 @@
     "dsh-ref-scan": "dsh-ref-scan.mjs",
     "dsh-sim-scan": "dsh-sim-scan.mjs",
     "dsh-self-audit": "dsh-self-audit.mjs",
+    "dsh-plan-gate": "dsh-plan-gate.mjs",
     "l3-reminder": "dsh-l3-pitfall-reminder/bin/l3-reminder.mjs",
     "docs-archive-rounds": "docs-discipline/archive-rounds.mjs",
     "docs-check-caliber": "docs-discipline/check-caliber.mjs",

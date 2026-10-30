@@ -7,6 +7,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions
 
 ### Added
 
+- **`dsh-plan-gate.mjs`** — plan-review gate. Given a plan document it prints the sha256 of the **body**
+  (anchor lines dropped, BOM stripped, CRLF→LF) and judges four states: `pass` / `stale` / `missing` / `fail`
+  (`--check` rc 0 / 1 / 3 / 4). Writes are **dry-run by default**: `--pass` / `--fail` land an anchor line only with
+  `--apply`, and there is **ever only one anchor line** (same `kind` / `round` / `actor` / `independent` / body sha
+  ⇒ byte-identical file, not even written).
+  The anchor carries `actor=` (who signed) and `independent=` (whether the signer is independent of the author; value
+  domain `yes` / `no`); `--check --require-independent` reports **`missing` (rc 3)** when a pass anchor exists but the
+  signer is not independent. ⚠️ **The default does not check the stance**: without that flag an author-signed anchor is
+  still `pass`, which means only "somebody signed" — stated explicitly in `--help` and the README.
+  Concurrency: external-snapshot CAS (`--expect-sha`), a re-read right before the write, and a read-back right after
+  it (anchor line + body sha). A read-only file, a failed write, or two sessions writing at once all yield `stale`
+  **without overwriting**, with the errno / reason code printed as is.
+- **`lib/plan-gate-core.mjs`** — core behind the gate: body normalization, four-state judgement, anchor parse / place /
+  write, idempotence, race handling. `node:` built-ins only.
+- **`config/plan-gate.json`** — gate calibre: where the anchor goes (before the first `##`), what counts as a `##`
+  heading, who may sign (`any` / `list` + allow-list), and whether independence is required by default (`false`).
+- **`_test/test-plan-gate.mjs`** — 109 assertions: the four states, body normalization (CRLF ⇄ LF and BOM are *not*
+  changes, one character is), idempotence (three writes ⇒ still one anchor line, byte-identical file), separation of
+  duties (both directions, plus "the default does not check the stance" as an executable assertion), the three race
+  cases, anchor placement (including CRLF and BOM preservation), calibre overrides, and the CLI exit-code matrix
+  (including `--help` / dry-run writing nothing). It also runs **three mutation tests** — disable the independence
+  check, turn idempotence into appending, disable the read-back — and each mutant must turn a named assertion red.
 - **`dsh-ref-scan.mjs`** — reference-surface scan. Given keywords, scans four carriers (docs / skills / persona /
   tools, configurable in `config/ref-scan.json`) and prints a four-way disposition table
   (`A` fix in place · `B` add a header pointer · `C` keep + reason · `D` needs owner). The disposition column is
@@ -33,6 +55,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions
 
 ### Changed
 
+- `package.json` bumped to **0.2.0** (version only — **not published** with this change) and `dsh-plan-gate` added to
+  `bin`. README (zh + en) gained a "Design basis" section at the top and a `5.6` section for the gate.
 - Comments only: four leftover internal markers removed from `docs-index-gen.mjs`, `check-decoupling.mjs`,
   `dsh-l3-pitfall-reminder/install.mjs` and `dsh-l3-pitfall-reminder/README.md` (no behaviour change; the
   literal-layer scanner found them — earlier published snapshots carried them).
