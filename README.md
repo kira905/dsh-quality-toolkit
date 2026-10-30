@@ -1,5 +1,33 @@
 # dsh-quality-toolkit · DSH 质检与规则工具包
 
+> 本仓**主包**是命令行工具（**23 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 profile 的 `cordis.patch.yml` 里手工 `insert` 一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
+
+## 装完自检（三条只读验法）
+
+`<profile>` 换成你实际用的 profile（默认 `web`），`<数据根>` 换成你的 DSH 数据根（默认 `~/.dsh`）。
+
+```powershell
+# ① 组合树里有没有它（只读、约 0.6 秒、不启服务）
+dsh --profile <profile> --dump-config | Select-String "dsh-quality-toolkit"
+# 期望：bundle 层出现一行 "# == <登记名>"、insert 层出现 "- id: <entry>"（问的都是「它挂上没」）；
+#       本仓包名 @kira905/dsh-quality-toolkit —— 带 scope 装的写带 scope 名、老工装 / 手写的可能是裸名，两种都搜一遍
+#       ⚠️ 若该包会 insert 一行，还要数一遍"同一个 id 出现了几次"，必须 == 1
+
+# ② 组合列表里有没有它（只读）
+Get-Content <数据根>/profiles/<profile>/package.json | Select-String "@kira905/dsh-quality-toolkit"
+# 期望：dependencies 与 dsh.profile.bundles 两处都有（CLI 类只需要 dependencies；bundles 里也可能写裸名 dsh-quality-toolkit）
+
+# ③ 命令在不在 —— 【只查存在，不执行】
+Test-Path <数据根>/profiles/<profile>/node_modules/.bin/rulecheck.CMD   # 装进 profile 的
+Test-Path "$env:APPDATA\npm\rulecheck.CMD"                           # npm i -g 装的
+# 期望：True。两条路径按你实际用的装法挑一条
+```
+
+> 探针只做存在性检查（只看命令文件在不在，不执行任何命令）。
+> 要不要用 `--help` 验，见本仓当前说明与该命令的参数表。
+
+---
+
 > DeepSeek Harness（DSH）生态里「**写方案 → 审核 → 回修 → 出证 → 封版**」这条链上真正在用的
 > 一组只读校验器：**工程规则校验**（DoD / DoR / 缺陷分级 / 复盘 / 惯例对照）、**文档纪律判据**、
 > **文档总索引生成**、**词表漂移守卫**、**解耦检查**，外加一个 **L3 实时坑库提醒插件**。
