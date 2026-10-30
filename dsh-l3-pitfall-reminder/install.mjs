@@ -29,7 +29,7 @@ const END = '# <<< l3-pitfall-reminder';
 const PATCH_BLOCK = `${BEGIN}
 # 命中坑库时向当前会话投递一条提醒（挂点 tools/post-execute，官方同款先例 = dsh-repeat-tool-reminder）。
 # 开关：~/.dsh/butler-l3-reminder.json（不存在或 enabled!=true ⇒ 零动作）。开关热读，**改开关不用重启**。
-# 交付与判据见 docs\\交付报告-冲刺600-P4-L3提醒-20261009.md；卸载：本段整段删掉（或跑 install.mjs --rollback --apply）。
+# 判据见本插件 README 与 _test/test-core.mjs；卸载：本段整段删掉（或跑 install.mjs --rollback --apply）。
 - insert:
     - id: ${PKG_NAME}
       name: '${PKG_NAME}'

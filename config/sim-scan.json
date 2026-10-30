@@ -1,0 +1,89 @@
+{
+  "caliber": "basename-lineset-v1",
+  "note": [
+    "同源度扫描口径。所有取值都写死在这里，脚本不许另立一套默认值。",
+    "改名任何一项都会改变读数 —— 请在同一次比较里保持本文件不变，并把它的 fingerprint 一起记下来。",
+    "口径来源：'同名件（按文件名匹配）+ 行级多重集扣减 + ≥90%/50-90%/<50% 三档'。",
+    "两套已实测等价的生产面写法：① roots = tools(递归) + .(仅根文件)；② 整棵工作区递归（其余目录同 skipDirs）。",
+    "  2026-10-30 对 17 个仓各跑一遍，两套写法 17 行逐字相同；本文件取第 ① 种（可读性更好）。"
+  ],
+  "ext": [
+    ".mjs",
+    ".js",
+    ".cjs",
+    ".ps1",
+    ".yml",
+    ".yaml"
+  ],
+  "skipDirs": [
+    "node_modules",
+    ".git",
+    "_archive",
+    "_tmp",
+    "generated",
+    "logs",
+    "backups",
+    "snapshots"
+  ],
+  "production": {
+    "roots": [
+      {
+        "path": "tools",
+        "mode": "recursive"
+      },
+      {
+        "path": ".",
+        "mode": "root-files"
+      }
+    ]
+  },
+  "repo": {
+    "roots": [
+      {
+        "path": ".",
+        "mode": "recursive"
+      }
+    ],
+    "minFilesToJudge": 1
+  },
+  "buckets": {
+    "identical": "sha256-equal",
+    "high": 0.9,
+    "mid": 0.5
+  },
+  "verdict": [
+    {
+      "minPct": 90,
+      "label": "near-source-copy",
+      "zh": "近源副本"
+    },
+    {
+      "minPct": 50,
+      "label": "partial-rewrite",
+      "zh": "部分重写"
+    },
+    {
+      "minPct": 0,
+      "label": "rewrite-first",
+      "zh": "重写为主"
+    }
+  ],
+  "baselineReasons": [
+    {
+      "id": "time-point",
+      "zh": "取数时点不同"
+    },
+    {
+      "id": "repo-changed",
+      "zh": "该仓已变版"
+    },
+    {
+      "id": "caliber",
+      "zh": "口径差异"
+    }
+  ],
+  "repoRoot": {
+    "include": "^dsh-",
+    "note": "仓根下哪些目录算仓；缺省只收 dsh- 开头（备份 _xxx / 暂存 _publish 不进分母）"
+  }
+}

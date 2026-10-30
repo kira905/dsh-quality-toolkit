@@ -1,0 +1,24 @@
+# 内部标识必删字面量表（子串匹配，大小写不敏感）
+#
+# 格式： <类别><TAB><字面量>
+# 类别固定 7 个（与 config/deny-patterns.txt **合并计**）：
+#   device-tag      设备标签前缀
+#   stick-number    棒号（第 N 棒 式）
+#   card-number     卡号（卡 <数字>）
+#   mainline-name   主线名（主线「…」）
+#   internal-report 内部交付报告名模式
+#   host-name       主机名与主机别名
+#   drive-port      盘符与私有端口
+#
+# 判据 = 每一类至少有 1 条；缺任一类别 ⇒ 判红（"非空"不算过：3 个词的合法空表就是漏洞）。
+# 本表随仓发布，所以只放**结构性**标识（前缀 / 命名惯例 / Windows 默认主机名前缀），
+# 不放任何私有的真实主机名、账号名、卡号。你自己的私有词请另建
+# config/deny-words.local.txt（.gitignore 已挡，不随仓发布），扫描器会自动并进去。
+#
+# 这两份表自身在扫描时被跳过（否则它们必然命中自己），规则见 lib/deny-literal.mjs 的 SELF_TABLES。
+
+device-tag	【设备：
+device-tag	设备标签：
+host-name	DESKTOP-
+host-name	LAPTOP-
+mainline-name	主线「

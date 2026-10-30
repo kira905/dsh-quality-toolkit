@@ -1,0 +1,28 @@
+{
+  "note": [
+    "一份**示例**基线表：形状与 dsh-sim-scan 的输出一致，用来演示 --baseline 的逐行差异归因。",
+    "你自己的基线请照这个形状另存一份（--baseline <file> 指过去），别改这份 —— 它是某个时点的读数快照。",
+    "at = 这份读数的取数时点。差异归因靠它做判据：之后有提交 ⇒ 该仓已变版；没有提交但工作树脏/文件更新 ⇒ 取数时点不同。"
+  ],
+  "at": "2026-10-30T12:26:00+08:00",
+  "caliber": "ext=.mjs,.js,.cjs,.ps1,.yml,.yaml|skip=node_modules,.git,_archive,_tmp,generated,logs,backups,snapshots|prod=tools:recursive,.:root-files",
+  "rows": [
+    { "repo": "dsh-memory-toolkit", "sameName": 117, "identical": 47, "near90": 69, "mid": 1, "low": 0, "pct": 100 },
+    { "repo": "dsh-board-toolkit", "sameName": 56, "identical": 6, "near90": 48, "mid": 2, "low": 0, "pct": 100 },
+    { "repo": "dsh-quality-toolkit", "sameName": 33, "identical": 2, "near90": 30, "mid": 1, "low": 0, "pct": 100 },
+    { "repo": "dsh-ops-toolkit", "sameName": 22, "identical": 1, "near90": 21, "mid": 0, "low": 0, "pct": 100 },
+    { "repo": "dsh-nurse", "sameName": 20, "identical": 3, "near90": 16, "mid": 1, "low": 0, "pct": 100 },
+    { "repo": "dsh-firstaid", "sameName": 14, "identical": 0, "near90": 5, "mid": 8, "low": 1, "pct": 93 },
+    { "repo": "dsh-session-toolkit", "sameName": 13, "identical": 0, "near90": 8, "mid": 5, "low": 0, "pct": 100 },
+    { "repo": "dsh-butler-core", "sameName": 11, "identical": 0, "near90": 0, "mid": 4, "low": 7, "pct": 36 },
+    { "repo": "dsh-diagnostics-extra", "sameName": 10, "identical": 1, "near90": 9, "mid": 0, "low": 0, "pct": 100 },
+    { "repo": "dsh-diagnostic-tools", "sameName": 8, "identical": 0, "near90": 0, "mid": 6, "low": 2, "pct": 75 },
+    { "repo": "dsh-host-adapter-client", "sameName": 7, "identical": 0, "near90": 7, "mid": 0, "low": 0, "pct": 100 },
+    { "repo": "dsh-butler-archive", "sameName": 6, "identical": 0, "near90": 0, "mid": 2, "low": 4, "pct": 33 },
+    { "repo": "dsh-session-title-live", "sameName": 6, "identical": 0, "near90": 2, "mid": 2, "low": 2, "pct": 67 },
+    { "repo": "dsh-ecosystem-panel", "sameName": 5, "identical": 0, "near90": 0, "mid": 5, "low": 0, "pct": 100 },
+    { "repo": "dsh-net-toolkit", "sameName": 5, "identical": 0, "near90": 5, "mid": 0, "low": 0, "pct": 100 },
+    { "repo": "dsh-notekit", "sameName": 5, "identical": 1, "near90": 4, "mid": 0, "low": 0, "pct": 100 },
+    { "repo": "dsh-closure-tools", "sameName": 4, "identical": 0, "near90": 0, "mid": 3, "low": 1, "pct": 75 }
+  ]
+}

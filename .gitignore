@@ -17,3 +17,6 @@ coverage/
 *.db
 butler-l3-reminder.json
 butler-l3-reminder.log
+# 你自己的私有脱敏词表（本机专用，绝不随仓发布）
+config/deny-words.local.txt
+config/deny-patterns.local.txt

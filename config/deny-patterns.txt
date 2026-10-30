@@ -1,0 +1,18 @@
+# 内部标识必删模式表（正则，逐行一条，格式 `<类别><TAB><regex>`）
+#
+# 类别同 config/deny-words.txt（7 类，与那份**合并计**；每类至少 1 条，缺任一类别判红）。
+# 正则用 JavaScript 语法（new RegExp(raw, 'u')）。写错了会被判红并指出是哪一行 ——
+# 静默跳过一条坏正则，等于把闸门悄悄收窄。
+#
+# 同样只放结构性模式：盘符、环回地址+端口、Windows 默认主机名前缀、内部命名惯例，
+# 不放真实主机名 / 账号名。
+
+device-tag	【设备[：:]
+stick-number	第\s*[0-9]{1,3}\s*棒
+card-number	卡[\s　]*[0-9a-fA-F]{4,}
+mainline-name	主线「[^」\n]{1,40}」
+internal-report	交付报告-[^\s）)\]]{1,60}-[0-9]{8}
+internal-report	脱敏清单与删改对照表
+host-name	(?<![A-Za-z0-9])(?:DESKTOP|LAPTOP|WIN)-[A-Z0-9]{4,}(?![A-Za-z0-9])
+drive-port	(?<![A-Za-z0-9])[A-Za-z]:[\\/]
+drive-port	(?:127\.0\.0\.1|localhost|0\.0\.0\.0):[0-9]{2,5}

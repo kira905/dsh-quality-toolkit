@@ -85,7 +85,7 @@ export const HOST_ADAPTER_SOURCE = path.join(path.dirname(fileURLToPath(import.m
  * 豁免路径：适配层自身（唯一源 + 副本）/ 测试夹具 / 注释（注释在 `scanLiterals` 里逐行处理）。
  * 测试夹具三种形态**都要认**：
  *   ① `_test\` 目录        ② 前缀式 `test-*.mjs`        ③ 后缀式 `<name>.test.mjs`
- * 【订正 2026-10-10 · <session-id>（冲刺600 补 R4R5 收口卡）】此前**只认 ①②**，后缀式漏项 ⇒
+ * 【订正 2026-10-10 · <session-id>（补 R4/R5 收口）】此前**只认 ①②**，后缀式漏项 ⇒
  *   `dsh-archive-sessions\multi-instance-protect.test.mjs:81`（夹具行 `type: 'user/message'`）被
  *   当成违规报出来（该文件 2026-10-10 14:33 新增，R4 从 10 处涨到 11 处的唯一来源）。属**判据漏项造成的假阳性**。
  * ⚠️ 只放宽「测试文件形态」这一条 —— **功能源码里的裸字面量照旧计入**（借"测试"名义放宽 = 破防线）。

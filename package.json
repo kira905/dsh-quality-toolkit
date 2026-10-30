@@ -18,6 +18,9 @@
     "dsh-docs-index-gen": "docs-index-gen.mjs",
     "dsh-sync-host-adapter": "sync-host-adapter.mjs",
     "dsh-vocab-guard": "dsh-vocab-guard.mjs",
+    "dsh-ref-scan": "dsh-ref-scan.mjs",
+    "dsh-sim-scan": "dsh-sim-scan.mjs",
+    "dsh-self-audit": "dsh-self-audit.mjs",
     "l3-reminder": "dsh-l3-pitfall-reminder/bin/l3-reminder.mjs",
     "docs-archive-rounds": "docs-discipline/archive-rounds.mjs",
     "docs-check-caliber": "docs-discipline/check-caliber.mjs",
@@ -36,6 +39,8 @@
   "files": [
     "*.mjs",
     "lib/",
+    "config/",
+    "_test/",
     "docs-discipline/",
     "dsh-l3-pitfall-reminder/",
     "README.md",

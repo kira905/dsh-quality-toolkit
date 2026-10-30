@@ -1,0 +1,49 @@
+{
+  "note": [
+    "引用面扫描的载体配置：给一个关键词，扫这几类载体，把该看的都列出来。",
+    "分类不是机器能拍的 —— 表里 A/B/C/D 那一列默认留空，由人填：",
+    "  A 就地订正 · B 加头指针 · C 判定不改+理由 · D 待主人",
+    "path 相对扫描根（--root / DSH_ROOT / ~/DSH）；以 ~ 开头时相对用户主目录。",
+    "extraSkipDirs 只作用在该载体内部：历史快照、别线产物这类目录不进处置表，但必须在扫描面证据里计数。"
+  ],
+  "carriers": [
+    {
+      "name": "docs",
+      "desc": "文档（口径、方案、报告）",
+      "path": "docs",
+      "ext": [".md", ".markdown"],
+      "extraSkipDirs": ["管家报告", "变更流水", "会话记录", "视频"]
+    },
+    {
+      "name": "skills",
+      "desc": "技能说明（SKILL.md 与参考件）",
+      "path": "~/.dsh/skills",
+      "ext": [".md", ".markdown"]
+    },
+    {
+      "name": "persona",
+      "desc": "人设与预设（注入件）",
+      "path": "~/.dsh/.agent-presets",
+      "ext": [".yml", ".yaml", ".md"]
+    },
+    {
+      "name": "tools",
+      "desc": "工具与脚本",
+      "path": "tools",
+      "ext": [".mjs", ".js", ".cjs", ".ps1", ".cmd"]
+    }
+  ],
+  "skipDirs": [
+    "node_modules",
+    ".git",
+    "_archive",
+    "_tmp",
+    "generated",
+    "logs",
+    "backups",
+    "snapshots",
+    "dist",
+    "build"
+  ],
+  "snippetMax": 120
+}

@@ -10,8 +10,8 @@
 
 ## ⚠️ 先读这段（比任何用法都重要）
 
-1. **帮助命令只覆盖一部分脚本。** 2026-10-30 起 `dsh-docs-consistency-scan` 与 `docs-gen-doc-audit`
-   支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
+1. **帮助命令只覆盖一部分脚本。** 2026-10-30 起 `dsh-docs-consistency-scan`、`docs-gen-doc-audit`、以及**交付闸三件**
+   （`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
    `rulecheck` / `check-decoupling` 本来就有帮助输出。其余历史脚本仍可能**静默忽略**未知参数、
    然后**直接执行真动作**。
    ⇒ **不确定就先读该脚本头部的注释块**（本仓每个脚本头 10~40 行都写了用法、口径与退出码），
@@ -65,10 +65,32 @@ dsh-quality-toolkit/
 ├── docs-consistency-scan.mjs         # 文档一致性四扫（编号/引用/列表）
 ├── dsh-vocab-guard.mjs               # 事件词表漂移守卫
 ├── sync-host-adapter.mjs             # 宿主适配层「唯一源 → 派生副本」同步/校验（依赖件）
+├── dsh-ref-scan.mjs                  # 引用面扫描：关键词 ⇒ 四类载体 ⇒ 四类处置表（A/B/C/D 留空给人填）
+├── dsh-sim-scan.mjs                  # 同源度扫描：同名件 / 逐字节同 / ≥90% / 50–90% / <50% / ≥50% 行同占比
+├── dsh-self-audit.mjs                # 交付前自批：六条机械判据（DoD / 命令原文 / 待拍板 / 内部标识 / 路径）
+├── config/                           # 三件器具的口径与词表（随仓发布；改口径 = 改这里）
+│   ├── sim-scan.json                 # 同源度口径：6 类扩展名 + 8 个 skip 目录 + 生产面 + 分档阈值
+│   ├── ref-scan.json                 # 引用面载体：文档 / 技能 / 人设 / 工具 + 各自排除目录
+│   ├── deny-words.txt                # 脱敏第三层：必删字面量（7 类，每类至少 1 条）
+│   ├── deny-patterns.txt             # 脱敏第三层：必删模式（正则；7 类合并计）
+│   ├── deny-allow.txt                # 允许规则：只放行结构性误报（夹具里的合成盘符等），逐行写理由
+│   └── baseline-sim-v3o.json         # 同源度基线表**示例**：演示 --baseline 的逐行差异归因
 ├── lib/
 │   ├── dsh-home.mjs                  # DSH home / workspace / 报告目录解析
 │   ├── generated-docs.mjs            # 「自动生成档」判据唯一权威源（纯常量 + 纯函数）
-│   └── rulecheck-rules.mjs           # 规则文本与判据族定义
+│   ├── rulecheck-rules.mjs           # 规则文本与判据族定义
+│   ├── cli-args.mjs                  # 用户 CLI 公共参数件（--help / 未知参数 fail-closed）
+│   ├── deny-literal.mjs              # 字面量层：7 类表 + 命中判定 + allow 规则 + 目录扫描
+│   ├── negctl.mjs                    # 阴性对照四步时序（注入 → 复制 → 扫+断言 → 清理）
+│   ├── ref-scan-core.mjs             # 引用面扫描内核（扫描面证据 / 四类处置表）
+│   ├── sim-scan-core.mjs             # 同源度内核（多重集扣减 / 分桶 / 基线差异归因）
+│   └── self-audit-core.mjs           # 六条判据实现（含内部标识三层）
+├── _test/                            # 三件器具的单测（118 条断言，纯夹具、零生产写入）
+│   ├── test-ref-scan.mjs
+│   ├── test-sim-scan.mjs
+│   ├── test-self-audit.mjs
+│   ├── test-deny-literal.mjs
+│   └── test-negctl.mjs
 ├── docs-discipline/                  # 文档纪律判据集（13 个检查器 + 2 个共享件 + 2 个单测）
 │   ├── README.md                     # 该组判据的完整口径（产物形态 / 取值 / 射程 / 退出码）
 │   ├── archive-rounds.mjs
@@ -107,7 +129,7 @@ dsh-quality-toolkit/
 
 ---
 
-## 3. 逐件表 · 根目录（6 个）
+## 3. 逐件表 · 根目录（9 个）
 
 | 文件 | 一句话用途 | 真实参数 |
 |---|---|---|
@@ -117,18 +139,27 @@ dsh-quality-toolkit/
 | `docs-consistency-scan.mjs` | 单份文档的一致性四扫：编号序列、引用/标题、列表计数、术语 | `node docs-consistency-scan.mjs <doc.md> [--json] [--quiet] [--defs 4.4,5,8] [--lists 5,8,12] [--ignore-own-headings] [--allow-doc-prefix <N>]` |
 | `dsh-vocab-guard.mjs` | 会话事件词表漂移守卫：比对两份 `known-event-types` 源码，并扫自研包里的裸字面量 | `node dsh-vocab-guard.mjs [--old <path>] [--new <path>] [--scan-root <dir>] [--no-scan] [--no-out] [--out <file>] [--json <file>] [--quiet] [--save-baseline <p>] [--baseline <p>]` |
 | `sync-host-adapter.mjs` | 宿主适配层的「唯一源 → 各包派生副本」幂等同步器；`check-decoupling` 的 R5 复用它做 sha 比对 | `node sync-host-adapter.mjs [--verify] [--dry-run] [--all] [--json <p>] [--self-test]`；无参 = 同步（内容相同即跳过） |
+| [`dsh-ref-scan.mjs`](dsh-ref-scan.mjs) | 引用面扫描：给关键词 ⇒ 扫四类载体 ⇒ 四类处置表（A 就地订正 / B 加头指针 / C 判定不改+理由 / D 待主人）。**判定列留空给人填** | `node dsh-ref-scan.mjs <关键词...> [--root <dir>] [--config <file>] [--out <file>] [--json] [--case-sensitive] [--snippet <N>]`；`0 命中 ⇒ 判黄（rc=3）` |
+| [`dsh-sim-scan.mjs`](dsh-sim-scan.mjs) | 同源度扫描：一个仓或一整个仓根，对同名可比件算「同名件 / 逐字节同 / ≥90% / 50–90% / <50% / **≥50% 行同占比**」 | `node dsh-sim-scan.mjs (--repo <dir> \| --all <dir>) [--prod-root <dir>] [--config <file>] [--baseline <file\|none>] [--detail <repo>] [--out <file>] [--json]` |
+| [`dsh-self-audit.mjs`](dsh-self-audit.mjs) | 交付前自批：六条机械判据（DoD 块 / 当次命令原文 / 待拍板段 / 内部标识三层 / 报告存在 / 引用文件存在） | `node dsh-self-audit.mjs <report.md> [--root <dir>] [--machine-report <file>] [--negctl --dir <dir>] [--out <file>] [--json]`；`0 绿 / 3 黄 / 4 红` |
 
 > `sync-host-adapter.mjs` 是 `check-decoupling.mjs` 的**依赖件**（`verifySummary()` + `SOURCE_LABEL`）。
 > 它只做**结构判定**（sha/头部比对），不读凭据、不碰密钥；默认目标表指向相对路径，
 > 在缺少该生态的机器上跑只会报 `source-missing`，不会写任何文件。
 
-## 4. 共享依赖件 · `lib/`（3 个）
+## 4. 共享依赖件 · `lib/`（9 个）
 
 | 文件 | 一句话用途 |
 |---|---|
 | `lib/dsh-home.mjs` | 解析 DSH home / web profile / workspace / 报告目录（`BUTLER_DSH_HOME > DSH_HOME > ~/.dsh`） |
 | `lib/generated-docs.mjs` | 「自动生成档」判据的**唯一权威源**：15 个文档家族、匹配模式、豁免资格、插入点、档级标记（纯常量 + 纯函数，零副作用） |
 | `lib/rulecheck-rules.mjs` | `rulecheck` 的判据族定义与规则文本（B/D/T/R/S/P/I 各族） |
+| `lib/cli-args.mjs` | 用户 CLI 公共参数件：`--help` ⇒ 打印用法 rc=0 且**绝不执行动作**；未知参数 ⇒ rc=2 且**绝不继续** |
+| `lib/deny-literal.mjs` | 脱敏第三层：7 类字面量表解析与校验（缺类即红）、命中判定、allow 规则、目录扫描 |
+| `lib/negctl.mjs` | 阴性对照四步时序：仓外生成样本 → 复制进被扫目录 → 扫并断言命中 → finally 清理 |
+| `lib/ref-scan-core.mjs` | 引用面扫描内核：扫描面证据行、四类处置表渲染、被排除目录命中单独计数 |
+| `lib/sim-scan-core.mjs` | 同源度内核：多重集扣减、三档分桶、主结论列、与基线的逐行差异归因 |
+| `lib/self-audit-core.mjs` | 六条判据实现（含「内部标识」三层：机器层 + 证伪层 + 字面量层） |
 
 ## 5. `docs-discipline/` · 13 个文档纪律判据
 
@@ -156,6 +187,89 @@ dsh-quality-toolkit/
 | `docs-discipline/lib/dispatch.mjs` | 子命令分发 |
 | `docs-discipline/_test/test-generated-docs.mjs` | 家族表 / 归一化 / 插入点单测（**会读生产档做对照**，先设 `AUTODOC_PROD_ROOT`） |
 | `docs-discipline/_test/test-stamp-doc-mark.mjs` | 档级标记盖印单测（同上，读生产档对照） |
+
+## 5.5 交付闸三件（`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）
+
+这三件治的是同一种病：**"口径改了就得扫全库""交付前机械自批一遍"这种活，别靠人记**。
+
+三件都是 **只读 + 可选落报告** —— 默认只打印，唯一写点是 `--out <file>`；报告请落在被扫目录之外。
+三件都接 `lib/cli-args.mjs`：`--help` ⇒ rc=0 且**不执行动作**；未知参数 ⇒ rc=2 且**零副作用**。
+
+### 5.5.1 `dsh-ref-scan` · 引用面扫描
+
+给一个关键词（可多个）⇒ 扫四类载体 ⇒ 输出一张四类处置表。
+
+- **四类载体**（`config/ref-scan.json` 可改）：文档 `docs/` · 技能 `~/.dsh/skills/` · 人设 `~/.dsh/.agent-presets/` · 工具 `tools/`。
+- **四类处置**：`A 就地订正` · `B 加头指针` · `C 判定不改 + 理由` · `D 待主人`。**机器只做机械事** —— 表里那一列默认留空，由人填。
+- **空态写死三条**（这是最容易退化成形式主义的地方）：
+  1. **0 命中 ⇒ 判黄**（rc=3），不是 pass、也不是红，并要求人工确认扫描面；
+  2. **每次扫描都打印"扫描面证据"**：载体清单 + 每类扫了多少文件 + 命中数 —— **空表也要有这行**；
+  3. 配**阴性对照**（见 5.5.4）证明扫描器不是死的。
+- **被排除目录里的命中单独声明**（如历史快照 / 别线产物）：既不进处置表、也不进主计数，但证据行会写清楚"另有 N 处"，
+  否则"漏网 0"只在一个未声明的面内成立。
+
+### 5.5.2 `dsh-sim-scan` · 同源度扫描
+
+一个仓（`--repo`）或一整个仓根（`--all`）⇒ 对**同名可比件**算同源度。
+
+**口径写死在 `config/sim-scan.json`，脚本不许另立一套默认值**（改口径 = 改这个文件，并把口径指纹一起记下来）：
+
+- **6 类扩展名**：`.mjs` · `.js` · `.cjs` · `.ps1` · `.yml` · `.yaml`
+- **8 个 skip 目录**：`node_modules` · `.git` · `_archive` · `_tmp` · `generated` · `logs` · `backups` · `snapshots`
+- **生产面** = `<proot>/tools` 递归 + `<proot>` 根目录下的文件（**不递归**）；`<proot>` = `--prod-root` / `$DSH_ROOT` / `~/DSH`
+- **仓面** = 每个仓递归（同样 6 类扩展名 + 8 个 skip 目录）；仓根下只收 `dsh-*` 目录（`_backup` / `_publish` 这类不是仓，不进分母）
+- **逐字节同** = sha256 相等；其余算**行同度**：仓内非空行（去首尾空白）拿去生产同名件里做**多重集扣减**
+  （同一行出现次数也扣 —— 集合包含会把"出现 5 次 vs 1 次"当全中），同名有多个候选时**取行同度最高者**
+- **三档**：≥90% / 50–90% / <50%；**主结论列** = (逐字节同 + ≥90% + 50–90%) ÷ 同名件 = **「≥50% 行同占比」**
+- **判定**：≥90% 近源副本 · ≥50% 部分重写 · <50% 重写为主；**同名件为 0 ⇒ 判不了**（不白给"重写为主"）
+
+表头一定打印：**口径指纹 + 生产面 + 扫描时点 + 扫描时各仓脏项数**（拿读数当"干净时的读数"是最常见的误读）。
+
+**与 `--baseline` 对比时不要求"逐格一致"** —— 仓是活体，取数时点不同、仓已变版都是正常的。
+本工具给的是：**差异行数** + 每行**可复现的原因**，原因只许三种：
+`取数时点不同`（无新提交但工作树脏 / 文件比基线时点新）· `该仓已变版`（附 `git log --since` 的一行）· `口径差异`（附口径指纹）。
+归不上这三种的，明确打 **无法归因** 并 rc=3 —— 不许拿"时点不同"糊过去。
+
+### 5.5.3 `dsh-self-audit` · 交付前自批（六条机械判据）
+
+| # | 判据 | 判法 |
+|---|---|---|
+| ① | DoD 块在不在 | 出现 `DoD` 且块内 ≥10 个勾选/编号项（**不是"有标题就算"**） |
+| ② | 有没有带当次命令原文 | **围栏代码块内**至少一条命令行（"跑过了"不算，要能把命令抄出来重跑） |
+| ③ | 有没有「待拍板」段 | 有未决项标记（`待拍板` / `待确认` / `未决`…）却没有该段 ⇒ 红；"无待拍板"这种否定式不算未决项 |
+| ④ | 报告里有没有内部标识 | **三层**：机器层 + 证伪层 + 字面量层（见 5.5.4），任一层不过即红 |
+| ⑤ | 报告路径真实存在 | 不存在 ⇒ 只出这一条并判红 |
+| ⑥ | 正文引用的文件真实存在 | 逐条解析行内反引号 / 裸路径；占位符（`<…>`）与 URL 不算；缺任一 ⇒ 红并点名。**围栏代码块里的命令不算引用**（那是第 ② 条的事）；**仓内相对路径**（首段不是扫描根下的目录，如 `lib/xxx.mjs`）记「跳过」—— 工具不知道它属于哪个仓，不冒充"缺文件" |
+
+退出码：`0 绿` · `3 黄（证据不足，需补）` · `4 红（停止发布）` · `2 用法错误`。
+⚠️ **「证据不足」不是通过**：机器层没注入词表、证伪层没跑阴性对照，都只能判黄。
+
+### 5.5.4 脱敏三层 + 阴性对照四步（第 ④ 条的真身）
+
+**① 机器层**：权威扫描器 rc=0 且 `review=0`，**且必须已注入 P0 词表**（`--deny-file`）。
+机器层报告里出现「P0 段未启用 / 本次扫描不完整」字样 ⇒ **判机器层不过 —— 不看 rc**
+（不注词表时扫描器照样 `hits=0`，"干净但不完整"就是最外层失效而无人告警）。
+
+**② 证伪层**：**阴性对照四步时序**（`dsh-self-audit --negctl --dir <仓>`）。为什么必须四步：
+样本放仓外 + 扫描器排除该路径 ⇒「扫描器必须判红」**永远不可能被验证**（它根本读不到样本）。
+
+1. **注入**：把 7 类各 1 条的样本写到**仓外固定路径** `%TEMP%/oss-negative-control/<仓名>.txt`；
+2. **复制**：把样本复制进**被扫目录**，用唯一哨兵名 `.negctl-<runId>.txt`；
+3. **扫 + 断言**：扫被扫目录（这一步刻意**不排除**哨兵），断言 **7 类全中**，其中三类核心（设备标签 / 盘符主机名 / 棒号卡号）必须命中；
+4. **清理**：`finally` 删掉哨兵与样本，再扫一次断言命中归零，并核对 `git status` 没被污染。
+
+"排除 `%TEMP%` 路径"只约束**正常扫描**，不约束第 3 步 —— 这两件事不冲突。
+
+**③ 字面量层**：**表必须落在仓内、随仓发布**（`config/deny-words.txt` + `config/deny-patterns.txt`），最小 **7 类**：
+设备标签前缀 / `第 ?N ?棒` 式棒号 / `卡 <数字>` 卡号 / `主线「…」` 主线名 / 内部交付报告名模式 / 主机名与主机别名 / 盘符与私有端口。
+**判据 = 每类至少 1 条，缺任一类别即判红**（"非空"不算过 —— 3 个词的合法空表就是漏洞）。
+
+命中不是一律判红：落在**围栏代码块内 / 行内反引号里 / 引用块里**的记为 allow（命令原文 / 被引用证据 / 原文摘录）；
+`config/deny-allow.txt` 里还有**逐行写理由**的结构性允许规则（例如夹具里的合成盘符 `X:`），
+**能放行的只有结构性误报，真实私有标识一律不许加允许**。你自己的私有词另建
+`config/deny-words.local.txt`（`.gitignore` 已挡，不随仓发布），扫描器会自动并进表里。
+
+---
 
 ## 6. `dsh-l3-pitfall-reminder/` · L3 实时坑库提醒插件
 
