@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cliGuard, parseArgs } from './lib/cli-args.mjs';
 import {
-  loadSimConfig, caliberFingerprint, buildProductionIndex, scanAll, scanRepo,
+  loadSimConfig, caliberFingerprint, buildProductionIndex, scanAll, scanRepo, gitDirtyCount,
   renderHeader, renderTable, compareBaseline, defaultProdRoot,
 } from './lib/sim-scan-core.mjs';
 
@@ -85,7 +85,7 @@ if (flags.repo) {
     process.exit(1);
   }
   const row = scanRepo({ repoPath, index, cfg, collectDetail: true });
-  row.dirty = null;
+  row.dirty = gitDirtyCount(repoPath);
   rows = [row];
 } else {
   rows = scanAll({ repoRoot: path.resolve(flags.all), index, cfg, collectDetail: Boolean(flags.detail) });
