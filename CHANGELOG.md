@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
+## [0.1.1] - 2026-10-30
+
+### Changed
+
+- Comments and docs: internal markers, internal note references and internal batch numbering
+  removed (no behaviour change; no code path touched).
+
 ## [0.1.0] - 2026-10-19
 
 ### Added
