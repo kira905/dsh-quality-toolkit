@@ -23,6 +23,7 @@
 // 口径说明（重要）：本工具的命中是**候选清单，不是结论**——②③④ 三扫带启发式，
 //   需人工抽样确认；① 是确定性判据（节号是否存在）。
 import fs from 'node:fs';
+import { cliGuard } from './lib/cli-args.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 档位（家规《审核与回修文档纪律》第 9 条① · 2026-09-24 落地② 接线）：**恒 `report`（只报不拦）**。
@@ -61,7 +62,25 @@ function parseArgs(argv) {
   return o;
 }
 
-const args = parseArgs(process.argv.slice(2));
+const SPEC = {
+  cmd: 'dsh-docs-consistency-scan',
+  summary: '扫一份 Markdown 里的跨节引用与清单项，报出「指向不存在的节 / 漏项」（只读报告器，不拦任何写入）。',
+  usage: 'dsh-docs-consistency-scan <doc.md> [--json] [--quiet] [--defs a,b] [--lists a,b] [--ignore-own-headings] [--allow-doc-prefix N]',
+  flags: [
+    { name: '--json', desc: '机器可读输出' },
+    { name: '--quiet', desc: '只报命中项，不打摘要' },
+    { name: '--defs', arg: 'a,b', desc: '只扫这些定义节号' },
+    { name: '--lists', arg: 'a,b', desc: '只扫这些清单节号' },
+    { name: '--ignore-own-headings', desc: '忽略文档自己的标题行' },
+    { name: '--allow-doc-prefix', arg: 'N', desc: '允许的档名前缀级数（≥0 整数）' },
+  ],
+  positional: [{ name: '<doc.md>', desc: '要扫的 Markdown 文件' }],
+  writes: '什么都不写：只读文件、只打印结论。',
+  exits: '0 无命中 · 3 有命中（供人工诊断；接线处不得据此拦写入） · 2 用法错',
+  examples: ['dsh-docs-consistency-scan ./docs/README.md', 'dsh-docs-consistency-scan ./docs/README.md --json'],
+};
+const SCAN_ARGV = cliGuard(SPEC);
+const args = parseArgs(SCAN_ARGV);
 if (args.error) {
   process.stderr.write(`✗ ${args.error}\nusage: node docs-consistency-scan.mjs <doc.md> [--json] [--defs a,b] [--lists a,b] [--ignore-own-headings] [--allow-doc-prefix N]\n`);
   process.exitCode = 2;

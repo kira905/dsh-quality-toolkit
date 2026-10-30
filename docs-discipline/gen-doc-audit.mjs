@@ -27,6 +27,7 @@ import {
   SCHEMA_VERSION, DOC_MARK_PREFIX, DOC_MARK_SCAN_LINES, GENERATED_DOC_FAMILIES,
   findFamily, findFamilies, isGeneratedDocText, isExemptEligible, familySamples,
 } from '../lib/generated-docs.mjs';
+import { cliGuard } from '../lib/cli-args.mjs';
 
 const DEFAULT_ROOT = process.env.DSH_ROOT || process.cwd();
 const DEFAULT_DOCS = path.join(DEFAULT_ROOT, 'docs');
@@ -235,6 +236,7 @@ function logPathDefault() {
 }
 
 function main() {
+  cliGuard(SPEC);
   const a = argParse(process.argv.slice(2), { values: ['docs', 'root', 'log'], flags: [] });
   const jsonMode = !!a.json;
   const logs = [];
@@ -273,8 +275,25 @@ function main() {
   finish(red ? EXIT.FAIL : EXIT.OK, res);
 }
 
+const SPEC = {
+  cmd: 'docs-gen-doc-audit',
+  summary: '「自动生成档」清单 ↔ 实况对账：逐族核档数 / 档头标记 / 豁免资格，并跑四条可失败断言（只读）。',
+  usage: 'docs-gen-doc-audit [--docs <DSH_ROOT>/docs] [--root <DSH_ROOT>] [--json] [--log <日志档>]',
+  flags: [
+    { name: '--docs', arg: '目录', desc: '要核对的 docs 根目录' },
+    { name: '--root', arg: '目录', desc: '仓库根（找生成器源文件用）' },
+    { name: '--log', arg: '文件', desc: '人类可读日志落点（--json 时只落文件、不上 stdout）' },
+    { name: '--json', desc: 'stdout 只吐一份 JSON' },
+    { name: '--self-test', desc: '跑内置自测，不碰真实 docs' },
+  ],
+  writes: '只读：不改任何档、不写生产路径。默认往系统临时目录写一份日志；--self-test 不写。',
+  exits: '0 全部断言绿 · 3 有红项 · 2 用法错 / --docs 指向的目录不存在',
+  examples: ['docs-gen-doc-audit --json', 'docs-gen-doc-audit --docs ./docs'],
+};
+
+// `--help` / `-h`：打印本用法并 rc=0（参数解析在 docs-discipline/lib/common.mjs#argParse）。
 function renderHelp() {
-  return helpBlock({
+  const body = helpBlock({
     title: '「自动生成档」清单 ↔ 实况对账（gen-doc-audit · 只读）',
     usage: 'node gen-doc-audit.mjs [--docs <DSH_ROOT>/docs] [--root <DSH_ROOT>] [--json] [--log <日志档>]',
     form: ['逐族对账：族 id · dir+match · 实测档数 · 档头带标记数 · 豁免资格',
@@ -294,6 +313,7 @@ function renderHelp() {
     exits: ['0 = 全部可失败断言绿', '3 = 有红项（impl-1 阶段断言 A 预期为红）', '2 = 用法错 / --docs 不存在'],
     selfTest: 'node gen-doc-audit.mjs --self-test',
   });
+  return ['用法', '  node gen-doc-audit.mjs [--docs <DSH_ROOT>/docs] [--root <DSH_ROOT>] [--json] [--log <日志档>]', '', ...body];
 }
 
 // ---------------------------------------------------------------- 自测（夹具全部落 os.tmpdir）
