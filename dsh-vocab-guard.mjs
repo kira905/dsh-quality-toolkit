@@ -54,6 +54,7 @@
  */
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 // DSH home 解析（口径 BUTLER_DSH_HOME > DSH_HOME > ~/.dsh，与 check-decoupling / 部署脚本同源）
