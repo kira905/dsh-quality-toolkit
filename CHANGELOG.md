@@ -3,7 +3,20 @@
 All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
-## [Unreleased]
+## [0.2.1] - 2026-10-31
+
+> 本版**已发布到 npm**（`latest = 0.2.1`）。它是 0.2.0 的修复重发：registry 上那份 0.2.0 的
+> `dsh-vocab-guard` 一启动就崩（见 Fixed 第一条），而下面 Added 的条目在 0.2.0 落仓时就已写好、
+> 随本版首次真正到达用户（含允许规则的第 4 列「值锚」与注释面中性化）。
+
+### Fixed
+
+- **`dsh-vocab-guard.mjs` 一启动就崩（0.2.0 的致命回归，也是本版唯一的动因）** —
+  `DEFAULT_OUT` 用了 `os.tmpdir()`，文件头却只 import 了 `fs` / `path` / `url`，缺 `import os from 'node:os'`
+  ⇒ 任何调用（包括 `--help`）当场 `ReferenceError: os is not defined`。旧发布件就是这个状态：
+  装得上、跑不起来。已补 import；`node --check` rc=0、`node dsh-vocab-guard.mjs --help` rc=0。
+  **发布判据因此加两条**：发前必须在本地真跑一次坏件；发后必须从 registry 把 tarball 拉下来再真跑一次
+  —— `npm publish` 的成功回执不代表包能跑。
 
 ### Added
 

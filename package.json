@@ -1,6 +1,6 @@
 {
   "name": "@kira905/dsh-quality-toolkit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DeepSeek Harness (DSH) quality & rules toolkit: engineering-rule checker (DoD/DoR/defect/postmortem/practice), documentation-discipline judges, docs index generator, vocabulary guard, decoupling checker, and the L3 realtime pitfall-reminder plugin. Zero third-party runtime dependencies.",
   "license": "AGPL-3.0-only",
   "private": false,
