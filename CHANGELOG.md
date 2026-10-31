@@ -7,6 +7,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions
 
 ### Added
 
+- **`config/deny-allow.txt` 支持可选第 4 列「值锚」** — an allow rule may now anchor on the **matched text**:
+  `drive-port <TAB> ** <TAB> <reason> <TAB> 127.0.0.1:3080` allows exactly that one literal and nothing else.
+  Why: some false positives are **value-level** (a loopback address + a component's public default port, a
+  synthetic drive letter), and a path glob can only express "allow this whole file / directory" — which is the
+  real loosening. Anchored rules keep the gate tight: another port or another host still lands in `review`.
+  Backward compatible: 3-column rules behave exactly as before, and a rule that carries an anchor never fires
+  when the matched text is not supplied (conservative). `configuredAllow()` gained the optional `matchedText`
+  argument, and every hit now carries `matched` alongside `masked`. Unit tests: `_test/test-deny-literal.mjs` E1–E7.
+- **`config/deny-allow.txt` 值锚定条目** — loopback + the public default ports of our own components
+  (DSH web / isolated instance / canary / local encode bridge / local ComfyUI / local proxy core), the synthetic
+  `X:` drive, and the files that must contain the device-tag **format** because they audit it. Each line states
+  its reason; no real machine name, account or report name is being allowed.
+- **注释面中性化**（K-6）：仓内注释不再出现内部任务号 / 批次号 / 内部交付报告名 / 内部主线名 /
+  设备标字面量；只动注释与文档，参数名、缺省值、退出码、输出结构一字节未动（8 个单测文件读数与改前一致）。
+
 - **`dsh-plan-gate.mjs`** — plan-review gate. Given a plan document it prints the sha256 of the **body**
   (anchor lines dropped, BOM stripped, CRLF→LF) and judges four states: `pass` / `stale` / `missing` / `fail`
   (`--check` rc 0 / 1 / 3 / 4). Writes are **dry-run by default**: `--pass` / `--fail` land an anchor line only with

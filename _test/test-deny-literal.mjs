@@ -5,13 +5,15 @@
 //   ① 7 类**每类至少 1 条**才算过 —— "非空"不算过（3 个词的合法空表就是漏洞）；
 //   ② 坏正则必须被抓出来并指出行号（静默跳过 = 悄悄收窄闸门）；
 //   ③ 命中落在围栏代码块 / 行内反引号 / 引用块里 ⇒ allow（命令原文·被引用证据·原文摘录），其余算待复核；
-//   ④ 两份表自身在扫描时被跳过（否则它们必然命中自己）。
+//   ④ 两份表自身在扫描时被跳过（否则它们必然命中自己）；
+//   ⑤ 允许规则的第 4 列「值锚」：只放行**命中文本逐字相等**的那一个字面量，
+//      换一个端口 / 换一类标识照样判 review（放行粒度是值，不是整个文件）。
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { newResults, assertEq, assertTrue, finishSelfTest, rmrf } from '../docs-discipline/lib/common.mjs';
-import { loadTables, auditTables, scanText, scanDir, CATEGORIES, mask, ALLOW_REASONS } from '../lib/deny-literal.mjs';
+import { loadTables, auditTables, scanText, scanDir, configuredAllow, CATEGORIES, mask, ALLOW_REASONS } from '../lib/deny-literal.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TMP = path.join(os.tmpdir(), `k7-deny-${process.pid}-${Date.now().toString(36)}`);
@@ -31,6 +33,7 @@ const PATTERNS = [
   'internal-report\t交付报告-[^\\s）)\\]]{1,60}-[0-9]{8}',
   'host-name\t(?<![A-Za-z0-9])(?:DESKTOP|LAPTOP)-[A-Z0-9]{4,}(?![A-Za-z0-9])',
   'drive-port\t(?<![A-Za-z0-9])[A-Za-z]:[\\\\/]',
+  'drive-port\t(?:127\\.0\\.0\\.1|localhost):[0-9]{2,5}',
 ].join('\n');
 
 function makeTables(dir, { words = WORDS, patterns = PATTERNS } = {}) {
@@ -119,6 +122,33 @@ try {
   const withLocal = loadTables(okDir);
   assertTrue(withLocal.words.some((w) => w.raw === '某私有主机'), 'D1 .local.txt 私有词自动并表', res);
   assertTrue(auditTables(withLocal).ok, 'D2 并入私有词后仍然结构通过', res);
+
+  // ---------------- E. 值锚定白名单（第 4 列）
+  const anchorDir = path.join(TMP, 'anchor');
+  makeTables(anchorDir);
+  fs.writeFileSync(path.join(anchorDir, 'deny-allow.txt'), [
+    '# 三列 = 只按路径放行（老格式，向后兼容）',
+    'drive-port\t**/legacy.mjs\t夹具用合成盘符（假盘），不指向真机',
+    '# 四列 = 值锚：命中文本逐字相等才放行',
+    'drive-port\t**\t环回地址 + 产品公开缺省端口，不含机器信息\t127.0.0.1:3080',
+  ].join('\n') + '\n', 'utf8');
+  const anchorTables = loadTables(anchorDir);
+  assertEq(anchorTables.errors, [], 'E1 四列允许规则解析零错误', res);
+
+  const portHits = scanText('const B = "http://127.0.0.1:3080";', anchorTables, { file: 'app.mjs' });
+  assertTrue(portHits.length === 1 && portHits[0].allow, 'E2 值锚命中 ⇒ allow', res, JSON.stringify(portHits));
+  assertTrue(/值锚：127\.0\.0\.1:3080/.test(portHits[0].allowReason), 'E3 allow 理由里点名值锚（放行了什么可审）', res, portHits[0].allowReason);
+
+  const otherPort = scanText('const C = "http://127.0.0.1:3081";', anchorTables, { file: 'app.mjs' });
+  assertTrue(otherPort.length === 1 && !otherPort[0].allow, 'E4 换一个端口 ⇒ 照样待复核（值锚不放松整类）', res, JSON.stringify(otherPort));
+
+  const tagHits = scanText('正文 【设备：某机】', anchorTables, { file: 'app.mjs' });
+  assertTrue(tagHits.length > 0 && tagHits.every((h) => !h.allow), 'E5 值锚只作用于自己那条类别（别的类别照样待复核）', res, JSON.stringify(tagHits));
+
+  const legacyHits = scanText('path X:\\a here', anchorTables, { file: 'sub/legacy.mjs' });
+  assertTrue(legacyHits.length === 1 && legacyHits[0].allow, 'E6 三列老格式按路径放行（向后兼容）', res, JSON.stringify(legacyHits));
+
+  assertEq(configuredAllow('app.mjs', 'drive-port', anchorTables, null), null, 'E7 不传命中文本 ⇒ 值锚规则不生效（保守，宁报 review 不误放）', res);
 } finally {
   rmrf(TMP);
 }
