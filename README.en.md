@@ -1,5 +1,29 @@
 # dsh-quality-toolkit · quality & rules tooling for DeepSeek Harness (DSH)
 
+> ### What this is
+> **Engineering rules as executable checkers**: 24 entry points — rule checks, documentation discipline, index generation, vocabulary guard, pitfall reminders.
+>
+> ### What it solves
+> A rule that only exists in a document does not exist. Each rule becomes a command you can run right now: does the report have its required block, do the paths it cites still exist, was the temp file archived, has the vocabulary drifted. All read-only, all report-only — it never blocks a person. **A rule you can machine-check is a rule nobody can wave through with "I'm sure I did it".**
+>
+> ### Run it in one command
+> ```powershell
+> npm i -g @kira905/dsh-quality-toolkit
+> rulecheck dod --file <your-deliverable-report.md>    # read-only checklist verification
+> rulecheck dor --card <card-id>                       # read-only card readiness check
+> ```
+>
+> ### Real output
+> ```text
+> rulecheck — read-only engineering-rule checker
+> Usage:
+>   node rulecheck.mjs baseline [--file <doc>]... [--scan-all] [--json] [--section] [--fail-on-bad]
+>   node rulecheck.mjs debt     [--file <doc>]... [--baseline <old copy>] [--json]
+>   node rulecheck.mjs dod      [--file <report>]... [--card <id|title>]... [--json]
+> ```
+
+---
+
 > The read-only checkers actually used along the DSH **plan → review → rework → evidence → release** chain:
 > **engineering-rule checks** (DoD / DoR / defect grading / postmortems / practice comparison),
 > **documentation-discipline judges**, a **docs index generator**, a **vocabulary drift guard**,
