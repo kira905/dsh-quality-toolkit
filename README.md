@@ -1,5 +1,29 @@
 # dsh-quality-toolkit · DSH 质检与规则工具包
 
+> ### 这是什么
+> **把工程规矩做成检查器**：24 个入口，规则检查 / 文档纪律 / 索引生成 / 词表守卫 / 坑库提醒。
+>
+> ### 它解决什么
+> 「按规矩来」如果只写在文档里，就等于没写。这里把每条规矩变成**能现跑的命令**：报告有没有 DoD 块、交付文档引用的路径还在不在、临时文件有没有归档、词表有没有漂移 —— 全部只读、只报告，不拦人。**规则要能被机器复核，才不会被"我记得我做了"糊过去。**
+>
+> ### 一条命令跑起来
+> ```powershell
+> npm i -g @kira905/dsh-quality-toolkit
+> rulecheck dod --file <你的交付报告.md>     # 只读：DoD 十条勾选块核验
+> rulecheck dor --card <卡号>                # 只读：卡面 DoR 八条核验
+> ```
+>
+> ### 先看它长什么样（真实输出）
+> ```text
+> rulecheck —— 工程规则只读校验器（observe 档）
+> 用法：
+>   node rulecheck.mjs baseline [--file <档>]... [--scan-all] [--json] [--section] [--fail-on-bad]
+>   node rulecheck.mjs debt     [--file <档>]... [--baseline <旧副本>] [--json]
+>   node rulecheck.mjs dod      [--file <报告>]... [--card <id|标题>]... [--json]
+> ```
+
+---
+
 > 本仓**主包**是命令行工具（**24 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 profile 的 `cordis.patch.yml` 里手工 `insert` 一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
 
 ## 装完自检（三条只读验法）
