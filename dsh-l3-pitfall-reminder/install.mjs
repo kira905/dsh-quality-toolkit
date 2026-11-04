@@ -5,7 +5,7 @@
 //
 // 两步（都幂等）：
 //   ① 部署插件实体到 <home>\profiles\<profile>\node_modules\dsh-l3-pitfall-reminder
-//      （默认 copy 副本 —— 避开 ROG 上 360 企业 EDR 拦「创建文件链接」的弹窗；--mode link 可建 junction）
+//      （默认 copy 副本 —— 避开设备 A 上 360 企业 EDR 拦「创建文件链接」的弹窗；--mode link 可建 junction）
 //   ② 在 <home>\profiles\<profile>\cordis.patch.yml 里插入带标记的一段 insert
 //
 // 铁律：**默认 dry-run**，必须显式 --apply 才动盘；改动前自动备份 cordis.patch.yml。
