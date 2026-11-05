@@ -194,7 +194,7 @@ dsh-quality-toolkit/
 
 ---
 
-## 3. Root tools (10)
+## 3. Root tools (11)
 
 | File | What it does | Real arguments |
 |---|---|---|
@@ -208,6 +208,8 @@ dsh-quality-toolkit/
 | [`dsh-sim-scan.mjs`](dsh-sim-scan.mjs) | Similarity scan for one repo or a whole repo root: same-name files / byte-identical / ≥90% / 50–90% / <50% / **≥50% line-share** | `node dsh-sim-scan.mjs (--repo <dir> \| --all <dir>) [--prod-root <dir>] [--config <file>] [--baseline <file\|none>] [--detail <repo>] [--out <file>] [--json]` |
 | [`dsh-self-audit.mjs`](dsh-self-audit.mjs) | Pre-delivery self-audit: six mechanical checks (DoD block / verbatim command / pending-decision section / internal identifiers in three layers / report exists / cited files exist) | `node dsh-self-audit.mjs <report.md> [--root <dir>] [--machine-report <file>] [--negctl --dir <dir>] [--out <file>] [--json]`; `0 green / 3 yellow / 4 red` |
 | [`dsh-plan-gate.mjs`](dsh-plan-gate.mjs) | Plan-review gate: computes the body sha256 of a plan document, judges four states (pass / stale / missing / fail), and can write one idempotent anchor line (`actor` + `independent` carry the separation-of-duties part) | `node dsh-plan-gate.mjs (--check \| --pass \| --fail) --file <plan.md> [--require-independent] [--round N] [--actor <who>] [--independent yes\|no] [--apply] [--expect-sha <hex>] [--config <file>] [--json]`; `check: 0/1/3/4`, `write: 0/1/3/4`, usage errors always 2 |
+
+| [`write-action-check.mjs`](write-action-check.mjs) | Write-action registry checker: register *who writes this file / this table*, then statically scan source to verify it (unregistered writer ⇒ red, stale registration ⇒ yellow). Read-only; wires nothing | `node write-action-check.mjs [--registry <path>] [--root <dir>]... [--self-plugins a,b,c] [--instance <name>] [--owner <who>] [--floor-total <n>] [--json] [--dump-actual] [--selftest]`; `0 all green / 3 red / 2 usage error` |
 
 > `sync-host-adapter.mjs` is a **dependency** of `check-decoupling.mjs` (`verifySummary()` + `SOURCE_LABEL`).
 > It performs **structural checks only** (sha/header comparison), never touches credentials or keys. Its default
@@ -422,6 +424,60 @@ is safe”.
 | Expiry | body sha changed ⇒ `stale` | the check's input changed (file sha / version / config value) ⇒ equally expired |
 
 Both locks treat the same thing: **“I say it is fine” is not evidence; “someone else can run it now” is.**
+
+---
+
+## 5.7 Write-action registry (`write-action-check`) · “who is writing this file behind my back”
+
+**What it is**: keep a **registry** of “who writes this carrier” (a file such as `state.json`, or a table such as
+`app.db#rows`), then **statically scan your source tree** and compare — declared but no longer writing ⇒ 🟡 stale;
+writing but not declared ⇒ 🔴 unregistered. It **reads only**: no production state is written, nothing is wired,
+your code is not modified.
+
+**One command**:
+
+```bash
+# 0. self-test: 22 cases (including a negative control, so it is not a rubber stamp)
+node write-action-check.mjs --selftest
+
+# 1. write your own registry following _test/写动作登记示例.json, then point at it
+node write-action-check.mjs --registry ./write-action-registry.json --root ./tools --root ./src
+#    exit codes: 0 all green / 3 red / 2 usage error
+```
+
+**Did it actually take effect after install** (all three are read-only):
+
+```bash
+command -v write-action-check          # ① the command exists (look only, never runs it)
+write-action-check --selftest; echo "rc=$?"   # ② expect 22/22 and rc=0
+write-action-check --registry ./_test/写动作登记示例.json --root ./tools   # ③ expect 5 red, all "carrier missing":
+                                       #    the example carriers are placeholders, so “not on disk” is the right answer
+```
+
+**Design points (all deliberate)**:
+
+- **Carrier key = `instance|normalized path`** (+ `#table` for tables). Two machines, two registries, same relative
+  path ⇒ **two different keys** — that is the mechanical check for “three identically named `state.json` files must
+  never be conflated”. Instance comes from `--instance` / `DSH_INSTANCE` (default `local`); never hardcode a host name.
+- **Writer enumeration parses the first argument of the write call**, not “the file mentions the carrier name”:
+  the latter marks 60+ modules as writers of one DB (useless noise). Paths hidden in constants/identifiers are
+  resolved (up to 3 levels) — but it prefers a miss over a false positive.
+- **Table-level carriers** use three signals: T1 direct SQL write / T2 injection token (`--<carrier>-db` & friends)
+  plus write ability / T3 thin CLI importing a writer entry point. SQL must be **statement-shaped**
+  (`UPDATE <table> … SET`), so `crypto.update(` never counts.
+- **Floor + rolling contract**: `meta.baseline` is the **current count**, `meta.floor` the **lower bound**
+  (`--floor-total` overrides the total). The checker only judges “baseline ≥ floor” and “baseline == actual count”,
+  not “actual must equal some snapshot”.
+- **Coverage boundaries are declared by you** (`meta.outOfScope`): each entry states what is *not* covered, why, and
+  who watches it, and the three mandatory classes must be mechanically covered (kernel session-log writes /
+  cross-host writes / runtime-assembled paths — `covers` must contain `W41` / `W11`·`W18` / a “dynamic” wording).
+- **Unjudgeable entries have a hard cap** (`meta.unjudgeable` ≤ 8, each with an owner); **over the cap ⇒ the whole run
+  is red** — that is what stops “fill the doc with excuses until it turns green”.
+- `--json` / `--dump-actual` are read-only; `--help` prints usage with rc=0, an unknown flag exits rc=2.
+
+**Known limits**: it judges **statically reachable write calls**. Runtime-assembled paths, other processes, other
+machines, and anything outside `--root` are invisible to it — those belong in `meta.outOfScope`, not in a claim of
+full coverage.
 
 ---
 

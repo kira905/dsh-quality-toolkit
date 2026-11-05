@@ -3,6 +3,56 @@
 All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
+## [0.3.0] - 2026-11-06
+
+> 本版**只加一件工具**：`write-action-check`（写动作登记校验器）。它是本仓第一个判断
+> **「谁在写这个文件 / 这张表，登记得对不对」** 的件 —— 先写一份登记表说明谁写，再用静态扫描核对：
+> 在写却没登记 ⇒ 🔴 未登记；登记了却不写了 ⇒ 🟡 登记过期。只读、零依赖、22 条自带用例（含阴性对照）。
+
+### Added
+
+- **`write-action-check.mjs`** — 写动作登记校验器（只读：只读盘、不写任何生产状态、不接线）。
+  - **载体唯一键 = `实例|规范化绝对路径`**（表再加 `#表名`）。多机各一份登记表时，同一个相对路径在 A 机 / B 机
+    上是**两个键** —— 这是「三份同名 state.json 不许混味」的机械判据；对端载体写 `peer://<实例>/<路径>`，
+    前缀实例名与条目 `instance` 不符即结构红。
+  - **写者枚举解析写调用的目标表达式**，不是「文件里出现载体名」（后者会把提到该名字的 60+ 个模块全算成写者）。
+    目标藏在常量 / 标识符里也能回查（最多 3 层）；`openSync(p,'a')` + `writeSync` 这类追加写、以及
+    `updateJson()` 这类**读-改-写**委派入口都算写，`readJson()` / `loadJson()` 绝不算（有阴性对照盯着）。
+  - **表级载体**（`carrierKey` 带 `#表` + `writerScope:'table'`）走三条信号：T1 直接 SQL 写 / T2 注入词
+    （`--<载体>-db`、`<X>_DB` 形态）+ 模块内有写动作 / T3 薄壳 CLI import 了写入口函数（写其实在 lib 里）。
+    SQL 判据要求**语句形**：`UPDATE <表> … SET` 才算，`crypto.update(` / `update:` 不算。
+  - **地板 + 持续契约**：`meta.baseline` 记现值、`meta.floor` 记下限（`--floor-total` 可覆盖总条数）。
+    只判「baseline ≥ 地板」+「baseline 与实际计数一致」，不把持续契约钉成一次性快照。
+  - **覆盖边界必须自己声明**（`meta.outOfScope`：不覆盖什么 / 为什么 / 谁监督），且必须机械覆盖三类
+    （内核写会话日志 / 跨机写对端盘 / 运行时动态拼路径）；**判不了有硬上限**（`meta.unjudgeable` ≤ 8，
+    每条要 owner），**超限整体判红** —— 防「把说明填满就变绿」。
+  - `--selftest` 22 条；`--json` / `--dump-actual` 只读；`--help` rc=0、未知参数 rc=2。
+- **`_test/写动作登记示例.json`** — 登记表结构与字段示例：`carrierPath` / `writers` **全是占位符**
+  （`<DSH_HOME>/...`、`tools/example-*.mjs`），照它的形状写自己的表，再用 `--registry` 指过去。
+- bin 名 **`write-action-check`**（`--help` 打全量参数）。
+
+### Changed（去私有化 · 与本仓 0.2.1 的「注释面中性化」同口径）
+
+提炼自一件内部工具，进仓前做了四类去私有化，**判据一条没放宽**（等价性证据见下）：
+
+- **内部命名 → 入参**：实例名 / 认领人不再写死在代码里，走 `--instance` / `--owner`（env `DSH_INSTANCE` /
+  `DSH_OWNER`，缺省中性值 `local` / `unassigned`）；自建插件白名单从 20 个硬编码包名改为
+  `--self-plugins a,b,c` / `DSH_SELF_PLUGINS`，**缺省为空 ⇒ 该扫描根不启用**（每台机器装的插件都不同，
+  硬编码名单对别人只会把真写者全漏掉）。
+- **盘符路径 → 参数 / env**：登记表 `--registry`（缺省 cwd 下 `写动作登记.json`，或 `DSH_REGISTRY`）；
+  扫描根 `--root`（可多值）/ `DSH_HOME`；注释与用法示例里不再出现任何盘符。
+- **台账耦合 → 中性夹具**：对端载体样例从真实实例名 + 真实状态文件路径，改成 `peer://remote-node/agent/state.json`。
+- **注释面中性化**：内部方案 §编号、内部任务卡号、复核编号、内部真源文档名一律不再出现在注释里。
+- `meta.floor` / `--floor-total`：把「地板」从写死的常量变成可覆盖（缺省值不变），别的项目不必凑够 51 条才能绿。
+
+### Notes
+
+- **行为等价性**：同一份内部登记表、同一批扫描根下，提炼件与生产件的 **8 条红逐条文本一致**；
+  扫描面 2457 件 + 111 件（profile 子树）= 2568 件，与生产件读数一致。差异只有一处口径：生产件把
+  「tools 根」钉在一个盘、「profile 根」钉在 `~/.dsh`（两个家），本仓统一走 `DSH_HOME` + `--root`。
+- **它判不了什么**：运行时动态拼出来的路径、别的进程 / 别的机器写的、以及 `--root` 之外的目录 —— 这些必须写进
+  `meta.outOfScope` 明说，而不是假装全覆盖（README §5.7「已知限制」同上）。
+
 ## [0.2.1] - 2026-10-31
 
 > 本版**已发布到 npm**（`latest = 0.2.1`）。它是 0.2.0 的修复重发：registry 上那份 0.2.0 的

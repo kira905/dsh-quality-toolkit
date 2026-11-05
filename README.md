@@ -207,7 +207,7 @@ dsh-quality-toolkit/
 
 ---
 
-## 3. 逐件表 · 根目录（10 个）
+## 3. 逐件表 · 根目录（11 个）
 
 | 文件 | 一句话用途 | 真实参数 |
 |---|---|---|
@@ -221,6 +221,8 @@ dsh-quality-toolkit/
 | [`dsh-sim-scan.mjs`](dsh-sim-scan.mjs) | 同源度扫描：一个仓或一整个仓根，对同名可比件算「同名件 / 逐字节同 / ≥90% / 50–90% / <50% / **≥50% 行同占比**」 | `node dsh-sim-scan.mjs (--repo <dir> \| --all <dir>) [--prod-root <dir>] [--config <file>] [--baseline <file\|none>] [--detail <repo>] [--out <file>] [--json]` |
 | [`dsh-self-audit.mjs`](dsh-self-audit.mjs) | 交付前自批：六条机械判据（DoD 块 / 当次命令原文 / 待拍板段 / 内部标识三层 / 报告存在 / 引用文件存在） | `node dsh-self-audit.mjs <report.md> [--root <dir>] [--machine-report <file>] [--negctl --dir <dir>] [--out <file>] [--json]`；`0 绿 / 3 黄 / 4 红` |
 | [`dsh-plan-gate.mjs`](dsh-plan-gate.mjs) | 方案过审闸：给方案档算正文字节 sha，判四态（pass / stale / missing / fail），可写一条幂等锚点（`actor` / `independent` 两个字段支撑"职责分离"） | `node dsh-plan-gate.mjs (--check \| --pass \| --fail) --file <方案档> [--require-independent] [--round N] [--actor <who>] [--independent yes\|no] [--apply] [--expect-sha <hex>] [--config <file>] [--json]`；`check：0/1/3/4`、`写：0/1/3/4`、用法错一律 2 |
+
+| [`write-action-check.mjs`](write-action-check.mjs) | 写动作登记校验器：登记「某文件 / 某表由谁写」+ 静态扫源码核对（写者漏登记 ⇒ 红 / 登记过期 ⇒ 黄）；只读，不接线 | `node write-action-check.mjs [--registry <路径>] [--root <目录>]... [--self-plugins a,b,c] [--instance <名>] [--owner <谁>] [--floor-total <n>] [--json] [--dump-actual] [--selftest]`；`0 全绿 / 3 有红 / 2 参数错` |
 
 > `sync-host-adapter.mjs` 是 `check-decoupling.mjs` 的**依赖件**（`verifySummary()` + `SOURCE_LABEL`）。
 > 它只做**结构判定**（sha/头部比对），不读凭据、不碰密钥；默认目标表指向相对路径，
@@ -430,6 +432,58 @@ dsh-plan-gate --check --file plan.md --require-independent
 | 过期判据 | 正文 sha 变了 ⇒ `stale` | 判据的输入变了（文件 sha / 版本号 / 配置值）⇒ 同样算过期 |
 
 两条锁治的是同一件事：**「我说它没问题」不算凭证，「换个人现在能跑一遍」才算**。
+
+---
+
+## 5.7 写动作登记校验（`write-action-check`）· 「谁在偷偷写这个文件」
+
+**这是什么**：给「某个文件 / 某张表由谁写」立一份**登记表**，然后**静态扫源码**核对 ——
+登记了却没在写 ⇒ 🟡 登记过期；在写却没登记 ⇒ 🔴 未登记。载体可以是文件（`state.json`）、
+也可以是表（`app.db#rows`）。它**只读盘**：不写任何生产状态、不接线、不改你的代码。
+
+**一条命令跑**（先从示例登记表起步）：
+
+```bash
+# 0. 自测：22 条用例（含阴性对照，证明它不是恒绿）
+node write-action-check.mjs --selftest
+
+# 1. 照 _test/写动作登记示例.json 的形状写你自己的登记表，再指过去
+node write-action-check.mjs --registry ./写动作登记.json --root ./tools --root ./src   # --root 可多值
+#   退出码：0 全绿 / 3 有红 / 2 参数错
+```
+
+**装完到底生效没**（三行，都是只读的）：
+
+```bash
+# ① 命令在不在（只查存在，不执行）
+command -v write-action-check        # Windows：Get-Command write-action-check
+
+# ② 它自己怎么说 —— 应打印 22/22 并 rc=0
+write-action-check --selftest; echo "rc=$?"
+
+# ③ 拿示例登记表干跑一次 —— 应看到「红 5 条（全部是"载体悬空"）」：示例里的 carrierPath 是占位符，
+#    「盘上没有」正是它该说的话；只要不是「未登记 / 结构红」，就说明它真的在按登记表判
+write-action-check --registry ./_test/写动作登记示例.json --root ./tools
+```
+
+**要点（都是刻意的）**：
+
+- **载体唯一键 = `实例|规范化路径`**（表再加 `#表名`）。多机各写一份登记表时，同一个相对路径在 A 机 / B 机上
+  是**两个键** —— 这正是「三份同名 state.json 不许混味」的机械判据。实例名走 `--instance` / `DSH_INSTANCE`，
+  缺省 `local`；别写死机器名。
+- **写者枚举是「解析写调用的目标表达式」**，不是「文件里出现载体名」：后者会把所有提到该文件名的模块都算成写者
+  （噪声不可用）。因此路径藏在常量 / 标识符里也能认（最多回查 3 层），但**宁可漏判也不误判**。
+- **表级载体**（`carrierKey` 带 `#表`）走三条信号：T1 直接 SQL 写 / T2 注入词（`--<载体>-db` 这类）+ 有写动作 /
+  T3 薄壳 CLI import 了写入口函数。SQL 判据要求**语句形**（`UPDATE <表> … SET`），`crypto.update(` 这种不算。
+- **地板 + 持续契约**：`meta.baseline` 记**现值**，`meta.floor` 记**下限**（可用 `--floor-total` 覆盖总条数）。
+  校验器只判「baseline 不低于地板」+「baseline 与实际计数一致」，不是「实际必须等于某个快照」。
+- **覆盖边界必须自己声明**（`meta.outOfScope`）：每条写清「不覆盖什么 / 为什么 / 谁监督」，且必须机械覆盖三类
+  （内核写会话日志 / 跨机写对端盘 / 运行时动态拼路径，`covers` 里分别出现 `W41` / `W11`·`W18` / 含「动态」字样）。
+- **判不了有硬上限**（`meta.unjudgeable` ≤ 8 条，每条必须有 owner），**超限整体判红** —— 防止「把说明填满就变绿」。
+- `--json` / `--dump-actual`（登记表初始化时用）都是只读；`--help` 打印用法 rc=0，未知参数 rc=2。
+
+**已知限制**：它判的是**静态可达的写调用**。运行时动态拼出来的路径、别的进程 / 别的机器写的、
+以及被 `--root` 划在扫描面之外的目录，它都看不见 —— 这些必须由 `meta.outOfScope` 明说，而不是假装全覆盖。
 
 ---
 
