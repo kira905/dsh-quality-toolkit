@@ -52,6 +52,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions
   「tools 根」钉在一个盘、「profile 根」钉在 `~/.dsh`（两个家），本仓统一走 `DSH_HOME` + `--root`。
 - **它判不了什么**：运行时动态拼出来的路径、别的进程 / 别的机器写的、以及 `--root` 之外的目录 —— 这些必须写进
   `meta.outOfScope` 明说，而不是假装全覆盖（README §5.7「已知限制」同上）。
+- **溯源自证**：本件提炼自一件内部工具（生产件 68,672 B / sha16 `b9629e2323bcb91f`），仓内版本
+  73,094 B / sha16 `9b01e16273ad6392` —— 体积差全部来自去私有化（注释中性化 + 参数化 + 示例登记表），
+  判据一条没改，22/22 用例与生产件逐条同名同义。
 
 ## [0.2.1] - 2026-10-31
 
