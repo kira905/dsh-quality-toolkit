@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-// dsh-plan-gate —— 方案过审闸（机器凭证 · 零联网 · 只碰一个文件）
+// dsh-plan-gate-qc —— 方案过审闸（机器凭证 · 零联网 · 只碰一个文件）
+//
+// 命令名 = `dsh-plan-gate-qc`（npm bin），文件仍叫 `dsh-plan-gate.mjs`。
+// 为什么带 -qc：`@kira905/dsh-ops-toolkit` 也发了一个 bin 名叫 `dsh-plan-gate`
+// （那是另一份实现、体量与锚点字段都不同）。两个包同时全局装时，同名 bin 会让 npm 报
+// `EEXIST` 直接装不下去 ⇒ 本仓这条改名为 `dsh-plan-gate-qc`，两边并存。
 //
 // 解决什么：「方案没过审就建卡」以前只能靠人自觉。本命令把「这份方案过了审、而且过审之后
 // 正文没被改过」变成一次可复跑的读数（正文字节 sha + 四态 + 一条幂等锚点）。
@@ -41,9 +46,9 @@ const DEFAULT_CONFIG = path.join(HERE, 'config', 'plan-gate.json');
 const EXIT = Object.freeze({ OK: 0, STALE: 1, USAGE: 2, MISSING: 3, FAIL: 4 });
 
 const SPEC = {
-  cmd: 'dsh-plan-gate',
+  cmd: 'dsh-plan-gate-qc',
   summary: '方案过审闸：给方案档算正文字节 sha，判四态（pass / stale / missing / fail），并可写一条幂等锚点。',
-  usage: 'dsh-plan-gate (--check | --pass | --fail) --file <方案档> [选项]',
+  usage: 'dsh-plan-gate-qc (--check | --pass | --fail) --file <方案档> [选项]',
   flags: [
     { name: '--file', alias: ['-f'], arg: 'file', desc: '方案档路径（必填）' },
     { name: '--check', desc: '只读评估四态（pass / stale / missing / fail），不写任何文件' },
@@ -63,11 +68,11 @@ const SPEC = {
   dryRun: '--pass / --fail 缺省就是 dry-run（只打印会写哪一行、落在第几行）；落盘必须显式 --apply。',
   exits: '--check：0 pass · 1 stale · 2 用法错 · 3 missing · 4 fail ｜ --pass/--fail：0 已写入/幂等跳过/dry-run · 1 stale（未覆盖） · 2 用法错 · 3 档读不到 · 4 策略拒绝',
   examples: [
-    'dsh-plan-gate --check --file plan.md',
-    'dsh-plan-gate --check --file plan.md --require-independent',
-    'dsh-plan-gate --pass --file plan.md --round 2 --actor reviewer-a --independent yes',
-    'dsh-plan-gate --pass --file plan.md --actor reviewer-a --independent yes --apply',
-    'dsh-plan-gate --fail --file plan.md --round 2 --actor reviewer-a --apply',
+    'dsh-plan-gate-qc --check --file plan.md',
+    'dsh-plan-gate-qc --check --file plan.md --require-independent',
+    'dsh-plan-gate-qc --pass --file plan.md --round 2 --actor reviewer-a --independent yes',
+    'dsh-plan-gate-qc --pass --file plan.md --actor reviewer-a --independent yes --apply',
+    'dsh-plan-gate-qc --fail --file plan.md --round 2 --actor reviewer-a --apply',
   ],
   notes: [
     '⚠️ 缺省不校验立场：不加 --require-independent 时，作者自己签的锚点也判 pass —— 那时 pass 只说明"有人签过"。',
@@ -123,7 +128,7 @@ function runCheck(flags, config) {
   const result = evaluate(flags.file, { ...config, requireIndependent: Boolean(flags['require-independent']) });
   if (flags.json) {
     out(JSON.stringify({
-      tool: 'dsh-plan-gate',
+      tool: 'dsh-plan-gate-qc',
       action: 'check',
       requireIndependent: result.requireIndependent,
       file: result.file,
@@ -166,17 +171,17 @@ function runWrite(flags, config) {
   const result = apply ? writeAnchor(flags.file, fields) : planWrite(flags.file, fields);
 
   if (!result.ok && result.outcome === 'denied') {
-    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate', action: kind, ok: false, outcome: result.outcome, code: result.code, reason: result.reason, file: result.file }, null, 2));
+    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate-qc', action: kind, ok: false, outcome: result.outcome, code: result.code, reason: result.reason, file: result.file }, null, 2));
     else { warn(`🚫 拒绝写入：${result.reason}`); warn('  （策略拒绝：没有改动任何字节）'); }
     return EXIT.FAIL;
   }
   if (!result.ok && result.outcome === 'missing') {
-    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate', action: kind, ok: false, outcome: result.outcome, code: result.code, reason: result.reason, file: result.file }, null, 2));
+    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate-qc', action: kind, ok: false, outcome: result.outcome, code: result.code, reason: result.reason, file: result.file }, null, 2));
     else warn(`⛔ ${result.reason}`);
     return EXIT.MISSING;
   }
   if (!result.ok) {
-    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate', action: kind, apply, ok: false, outcome: result.outcome, state: result.state, code: result.code, reason: result.reason, file: result.file, line: result.line, written: result.written ?? false }, null, 2));
+    if (flags.json) out(JSON.stringify({ tool: 'dsh-plan-gate-qc', action: kind, apply, ok: false, outcome: result.outcome, state: result.state, code: result.code, reason: result.reason, file: result.file, line: result.line, written: result.written ?? false }, null, 2));
     else {
       warn(`🟠 stale（${result.code}）：${result.reason}`);
       warn('  未覆盖：档里没有写入本命令的内容。请重跑 --check，看清当前正文再决定。');
@@ -186,7 +191,7 @@ function runWrite(flags, config) {
 
   if (flags.json) {
     out(JSON.stringify({
-      tool: 'dsh-plan-gate',
+      tool: 'dsh-plan-gate-qc',
       action: kind,
       apply,
       ok: true,
@@ -232,12 +237,12 @@ function main(argv) {
   const actions = [Boolean(flags.check), Boolean(flags.pass), Boolean(flags.fail)].filter(Boolean).length;
   if (actions !== 1) {
     warn('错误：必须且只能给 --check / --pass / --fail 之一');
-    warn('（运行 `dsh-plan-gate --help` 看用法）');
+    warn('（运行 `dsh-plan-gate-qc --help` 看用法）');
     return EXIT.USAGE;
   }
   if (!flags.file) {
     warn('错误：必须给 --file <方案档>');
-    warn('（运行 `dsh-plan-gate --help` 看用法）');
+    warn('（运行 `dsh-plan-gate-qc --help` 看用法）');
     return EXIT.USAGE;
   }
   if (typeof flags.file !== 'string') {

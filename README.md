@@ -85,7 +85,7 @@ Test-Path "$env:APPDATA\npm\rulecheck.CMD"                           # npm i -g 
 ## ⚠️ 先读这段（比任何用法都重要）
 
 1. **帮助命令只覆盖一部分脚本。** 2026-10-30 起 `dsh-docs-consistency-scan`、`docs-gen-doc-audit`、**交付闸三件**
-   （`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）以及**方案过审闸** `dsh-plan-gate` 支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
+   （`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`）以及**方案过审闸** `dsh-plan-gate-qc` 支持 `--help`（打印用法、退出码 0）与**未知参数拒收**（退出码 2，绝不继续执行）；
    `rulecheck` / `check-decoupling` 本来就有帮助输出。其余历史脚本仍可能**静默忽略**未知参数、
    然后**直接执行真动作**。
    ⇒ **不确定就先读该脚本头部的注释块**（本仓每个脚本头 10~40 行都写了用法、口径与退出码），
@@ -368,7 +368,13 @@ dsh-quality-toolkit/
 
 ---
 
-## 5.6 方案过审闸（`dsh-plan-gate`）
+## 5.6 方案过审闸（`dsh-plan-gate-qc`）
+
+> **命令名与文件名不一样，是故意的。** npm bin 名 = **`dsh-plan-gate-qc`**；仓内文件仍叫 `dsh-plan-gate.mjs`
+> （所以 `node dsh-plan-gate.mjs …` 也照样能跑）。带 `-qc` 的原因：`@kira905/dsh-ops-toolkit` 也发了一个
+> bin 名叫 `dsh-plan-gate`，那是**另一份实现**（锚点字段是 `runId=` / `reviewer=`，没有 `actor=` / `independent=`，
+> 也没有 `--require-independent`）。两个包同时全局安装时，同名 bin 会让 npm 报 `EEXIST` 直接装不下去
+> ⇒ 本仓这条改名，两边并存、互不覆盖。
 
 治的病：**「方案没过审就建卡」只能靠人自觉**。本命令把「这份方案审过了、而且审完之后正文没被改过」变成一次
 可复跑的读数，而不是一句承诺。
@@ -401,7 +407,7 @@ dsh-quality-toolkit/
 ### 职责分离：`--require-independent`
 
 ```bash
-dsh-plan-gate --check --file plan.md --require-independent
+dsh-plan-gate-qc --check --file plan.md --require-independent
 ```
 
 要求「签署方独立于作者」：有 pass 锚点但 `independent` 不是 `yes` ⇒ 判 **`missing`（rc 3）**，不是 `pass`。
@@ -520,7 +526,7 @@ write-action-check --registry ./_test/写动作登记示例.json --root ./tools
 ## 7. 与 DSH 的关系
 
 - **纯 CLI（可脱离 DSH 单跑）**：`rulecheck`、`docs-consistency-scan`、`docs-index-gen`、`dsh-vocab-guard`、
-  `dsh-plan-gate`、`docs-discipline/*`、`sync-host-adapter`。
+  `dsh-plan-gate-qc`、`docs-discipline/*`、`sync-host-adapter`。
 - **依赖 DSH 生态约定**（读 `docs\` / `profiles\web\`）：`check-decoupling`（扫插件源码树）、`sync-host-adapter`（同步 profile 副本）。
 - **是 DSH 插件**：只有 `dsh-l3-pitfall-reminder`（装在 `profiles\web\node_modules\` 下，随 dsh 启动加载）。
 
@@ -530,7 +536,7 @@ write-action-check --registry ./_test/写动作登记示例.json --root ./tools
 - `docs-discipline/_test/*` 与 `dsh-l3-pitfall-reminder/_test/test-core.mjs` 的部分用例会**读生产文档 / 生产坑库做对照**
   （只读）。在干净机器上这些用例会走 `skip` 分支或按数据漂移 FAIL —— 属预期。
 - `rulecheck` 的规则文本（`lib/rulecheck-rules.mjs`）来自某个具体工程流程，字段名与判据族是**约定俗成**的，换团队要改规则表。
-- `dsh-plan-gate` **不判断"谁有资格签"**：它只记 `actor` 与 `independent` 两个字段，是否真独立由流程与人负责。
+- `dsh-plan-gate-qc` **不判断"谁有资格签"**：它只记 `actor` 与 `independent` 两个字段，是否真独立由流程与人负责。
   默认配置 `signer.mode=any`（谁都签得了）；要白名单就在 `config/plan-gate.json` 里改成 `list`。
   另外它的只读档判据依赖文件系统只读位（Windows 上 `chmod 0444` 会置只读属性），在容器里以 root 跑可能测不到这条。
 

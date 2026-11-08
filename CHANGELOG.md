@@ -3,6 +3,27 @@
 All notable changes to this project are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/); versions follow SemVer.
 
+## [0.3.1] - 2026-11-09
+
+> 一句话：**只改一个 bin 名** —— `dsh-plan-gate` → **`dsh-plan-gate-qc`**。
+> 原因不是设计变更，是**两个包装不到一起**：`@kira905/dsh-ops-toolkit@0.2.0` 也发了一个 bin 名叫
+> `dsh-plan-gate`，于是任何机器按全家桶清单整批装时，装到第 17 项（本包）就报
+> `npm error code EEXIST: file already exists …\dsh-plan-gate.cmd`，**整批装不下去**（反序装也一样）。
+> 两份实现本来就不是同一样东西（本仓这份的锚点带 `actor=` / `independent=` 与 `--require-independent`；
+> 那份带 `runId=` / `reviewer=`），所以不是「谁覆盖谁」，是**必须各用各的名字**。
+
+### Changed（**不兼容变更**：命令名）
+
+- `package.json` 的 `bin` 键：`"dsh-plan-gate"` → **`"dsh-plan-gate-qc"`**（指向的文件仍是 `dsh-plan-gate.mjs`）。
+  老写法 `dsh-plan-gate …` 在本包 0.3.0 之后不再存在；`node dsh-plan-gate.mjs …` 与 `dsh-plan-gate-qc …`
+  两种写法都可以。
+- 同一个改名同步到了：`--help` 的用法行与 5 条示例、未知参数/用法错的提示语、
+  `--json` 输出里的 `tool` 字段（`"dsh-plan-gate-qc"`）。
+- `README.md` / `README.en.md`：§5.6 标题、多处命令示例与索引行同步改名，并写清「命令名 ≠ 文件名」以及
+  为什么必须分开（两个包同时全局装会 `EEXIST`）。
+- **判据一条没动**：四态 / 退出码 / 正文 sha 口径 / 锚点字段 / 幂等 / `--expect-sha` CAS 全部逐字不变；
+  `_test/test-plan-gate.mjs` 一字未改（它按**文件路径**调，不按 bin 名）。
+
 ## [0.3.0] - 2026-11-06
 
 > 本版**只加一件工具**：`write-action-check`（写动作登记校验器）。它是本仓第一个判断

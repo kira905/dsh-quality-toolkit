@@ -54,7 +54,7 @@ that method into a re-runnable command — they never carry a second calibre.
    output; **others silently ignore unknown flags and then execute their real action**. We have hit exactly
    that: running a snapshot export script with an unknown flag exported a full snapshot instead of printing help.
    The three delivery-gate tools (`dsh-ref-scan` / `dsh-sim-scan` / `dsh-self-audit`), the plan-review gate
-   (`dsh-plan-gate`), plus `dsh-docs-consistency-scan` and `docs-gen-doc-audit`, implement `--help` (rc=0, nothing
+   (`dsh-plan-gate-qc`), plus `dsh-docs-consistency-scan` and `docs-gen-doc-audit`, implement `--help` (rc=0, nothing
    executed) and **reject unknown flags** (rc=2, nothing executed).
    ⇒ **Read the header comment block of the script you are about to run** (every script documents usage,
    semantics and exit codes in its first 10–40 lines), or use the per-file table below.
@@ -340,7 +340,14 @@ identifiers. Put your own private words in `config/deny-words.local.txt` (gitign
 
 ---
 
-## 5.6 Plan-review gate (`dsh-plan-gate`)
+## 5.6 Plan-review gate (`dsh-plan-gate-qc`)
+
+> **The command name differs from the file name on purpose.** The npm bin is **`dsh-plan-gate-qc`**; the file in
+> this repo is still `dsh-plan-gate.mjs` (so `node dsh-plan-gate.mjs …` keeps working too). The `-qc` suffix exists
+> because `@kira905/dsh-ops-toolkit` also ships a bin named `dsh-plan-gate` — a **different implementation**
+> (its anchor carries `runId=` / `reviewer=`, no `actor=` / `independent=`, and no `--require-independent`).
+> Two global installs sharing one bin name make npm fail with `EEXIST`, so this repo's command was renamed and
+> both can coexist.
 
 The disease it treats: **“a card got created without the plan ever being reviewed” can only be prevented by
 self-discipline**. This command turns “this plan was reviewed, and its body has not changed since” into a
@@ -377,7 +384,7 @@ One HTML comment line, placed in the document header (before the first `##`):
 ### Separation of duties: `--require-independent`
 
 ```bash
-dsh-plan-gate --check --file plan.md --require-independent
+dsh-plan-gate-qc --check --file plan.md --require-independent
 ```
 
 Requires “the signer is independent of the author”: a `pass` anchor whose `independent` is not `yes` is judged
@@ -506,7 +513,7 @@ advisory context message into the **current session** (off by default).
 ## 7. Relationship to DSH
 
 - **Plain CLI (run without DSH)**: `rulecheck`, `docs-consistency-scan`, `docs-index-gen`, `dsh-vocab-guard`,
-  `dsh-plan-gate`, `docs-discipline/*`, `sync-host-adapter`.
+  `dsh-plan-gate-qc`, `docs-discipline/*`, `sync-host-adapter`.
 - **Rely on DSH conventions** (read `docs\` / `profiles\web\`): `check-decoupling`, `sync-host-adapter`.
 - **A DSH plugin**: only `dsh-l3-pitfall-reminder`.
 
@@ -516,7 +523,7 @@ advisory context message into the **current session** (off by default).
 - Some `_test` cases read production docs / the production pitfall store (read-only) for comparison; on a clean
   machine they take the `skip` branch or fail on data drift — expected.
 - `rulecheck`'s rule texts (`lib/rulecheck-rules.mjs`) encode one team's workflow; swap the rule table for yours.
-- `dsh-plan-gate` **does not decide who is qualified to sign**: it records `actor` and `independent` and leaves the
+- `dsh-plan-gate-qc` **does not decide who is qualified to sign**: it records `actor` and `independent` and leaves the
   actual independence to the process and the people. The default `signer.mode=any` lets anyone sign; switch to `list`
   in `config/plan-gate.json` for an allow-list. Its read-only check also relies on the filesystem read-only bit
   (`chmod 0444` sets the attribute on Windows), so running as root in a container may not exercise that case.
