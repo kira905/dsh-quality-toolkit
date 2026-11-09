@@ -33,11 +33,11 @@
 
 ---
 
-> 本仓**主包**是命令行工具（**24 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 profile 的 `cordis.patch.yml` 里手工 `insert` 一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
+> 本仓**主包**是命令行工具（**24 个命令**，`npm i -g @kira905/dsh-quality-toolkit` 即可），但**它还带一个默认关的插件子包** `dsh-l3-pitfall-reminder`（`private: true`，随主包 tarball 一起到，不是独立包）—— 要用它得在 `profile`（放插件的那个格子：`~/.dsh/profiles/<名字>`）的 `cordis.patch.yml`（DSH 读的插件挂载清单）里手工 `insert`（加一条挂载条目）一行，见下文；`npm i -g` 装完**不会**自动带走这一步。
 
 ## 装完自检（三条只读验法）
 
-`<profile>` 换成你实际用的 profile（默认 `web`），`<数据根>` 换成你的 DSH 数据根（默认 `~/.dsh`）。
+`<profile>` 换成你实际用的 profile（放插件的那个格子，默认 `web`），`<数据根>` 换成你的 DSH 数据根（默认 `~/.dsh`）。
 
 ```powershell
 # ① 组合树里有没有它（只读、约 0.6 秒、不启服务）
